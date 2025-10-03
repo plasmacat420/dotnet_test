@@ -1,0 +1,182 @@
+:root{
+  --bg: linear-gradient(180deg,#07112a 0%, #041026 100%);
+  --card: rgba(255,255,255,0.03);
+  --accentA: #6EE7B7;
+  --accentB: #60A5FA;
+  --muted: #9aa4b2;
+  --text: #e6eef8;
+  --glass-border: rgba(255,255,255,0.04);
+  --size: 340px; /* board width */
+  --skate-h: 72px;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%; margin:0; background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased;}
+.center-wrap{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  gap:14px;
+  padding:28px;
+}
+
+/* Ghostly summary text (center, small) */
+.ghost{
+  position:relative;
+  top: 10px;;
+  margin-top:34px;  
+  width:100%;
+  max-width:var(--size);
+  text-align:center;
+  font-weight:700;
+  color:rgba(230,238,248,0.95);
+  font-size:0.98rem;
+  opacity:0;
+  transition:opacity .45s ease, transform .45s ease;
+  transform:translateY(-6px);
+  z-index: 2; 
+}
+
+/* main board */
+.board{
+  width:var(--size);
+  max-width:calc(100% - 48px);
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border-radius:22px;
+  padding:22px 18px 48px 18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  border:1px solid var(--glass-border);
+  box-shadow: 0 18px 50px rgba(2,6,23,0.6);
+  backdrop-filter: blur(6px);
+  transform-origin:center;
+  transition: transform .28s cubic-bezier(.2,.8,.2,1), box-shadow .28s ease;
+  will-change: transform;
+}
+
+/* floating effect */
+.board:hover{ transform: translateY(-12px) scale(1.006); box-shadow: 0 30px 70px rgba(2,8,30,0.75); }
+
+/* photo */
+.photo-wrap{
+  width:122px;
+  height:122px;
+  border-radius:999px;
+  overflow:hidden;
+  border:4px solid rgba(255,255,255,0.06);
+  background:linear-gradient(135deg,var(--accentA),var(--accentB));
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 12px 30px rgba(2,6,23,0.5);
+  margin-bottom:12px;
+}
+.photo-wrap img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+/* skateboard (links) */
+.skateboard{
+  margin-top:6px;
+  width:86%;
+  height:var(--skate-h);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  position:relative;
+  transform-origin:center;
+  transition: transform .28s ease;
+  will-change: transform;
+}
+
+/* hover physics: small tilt on board hover */
+.board:hover .skateboard{ transform: translateY(-8px) rotate(-2deg); }
+
+/* skateboard deck */
+.skate-deck{
+  position:relative;
+  flex:1;
+  text-align:center;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  padding:12px 18px;
+  border-radius:999px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+  color:var(--text);
+  font-weight:800;
+  letter-spacing:0.2px;
+  text-decoration:none;
+  border:1px solid rgba(255,255,255,0.04);
+  box-shadow: 0 6px 20px rgba(2,6,23,0.45);
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+  user-select:none;
+  -webkit-user-select:none;
+  font-size:0.92rem;
+}
+.skate-deck:hover{ transform: translateY(-6px); box-shadow: 0 18px 36px rgba(2,6,23,0.6); background: linear-gradient(90deg,#06203b, rgba(255,255,255,0.02)); }
+
+/* wheel cluster (positioned visually underneath deck) */
+.wheels {
+  position: absolute;
+  bottom:-30px;
+  left:50%;
+  transform:translateX(-50%);
+  width:80%;
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  pointer-events:none; /* let each .skate-btn handle pointer events */
+  z-index: 4; /* appear above deck */
+}
+.wheel-slot { pointer-events:auto; }
+
+/* small circular buttons for logos */
+.skate-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:46px;
+  height:46px;
+  border-radius:50%;
+  background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  color:var(--text);
+  text-decoration:none;
+  border:1px solid rgba(255,255,255,0.04);
+  box-shadow: 0 8px 18px rgba(2,6,23,0.45);
+  transition: transform .2s ease, box-shadow .12s ease, background .12s ease;
+  pointer-events:auto;
+}
+.skate-btn:hover{ transform: translateY(-8px) scale(1.04); box-shadow: 0 22px 48px rgba(2,6,23,0.65); background: linear-gradient(90deg,var(--accentA),var(--accentB)); color:#07203a; }
+.icon{ width:18px; height:18px; display:block; }
+
+/* animate wheel rotation when board is hovered */
+.board:hover .skate-btn svg { animation: wheel-rot 700ms linear infinite; transform-origin:center; }
+@keyframes wheel-rot { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
+
+/* caption */
+.caption{ color:var(--muted); font-size:0.86rem; margin-top:34px; }
+
+/* accessibility helper (visually hidden) */
+.sr-only{ position:absolute; left:-9999px; top:auto; width:1px; height:1px; overflow:hidden; }
+
+/* responsive */
+@media (max-width:420px){
+  :root{ --size:92vw; --skate-h:64px; }
+  .photo-wrap{ width:108px; height:108px; }
+  .skate-btn{ width:40px; height:40px; }
+  .ghost{ margin-top:14px; }
+  .board{ padding-bottom:54px; }
+  .wheels{ bottom: -6px; }
+  .caption{ margin-top:28px; }
+}

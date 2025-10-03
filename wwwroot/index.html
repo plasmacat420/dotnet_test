@@ -1,0 +1,28 @@
+<!-- SimpleApi/wwwroot/index.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Contact — Faiz</title>
+
+  <!-- Tailwind CDN (quick) — ok for prototyping only -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Optional: small style overrides -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="bg-slate-900 text-gray-100 min-h-screen flex items-center justify-center">
+  <div id="root" class="w-full max-w-md"></div>
+
+  <!-- React + ReactDOM from CDN (development) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+  <!-- Babel for in-browser JSX transform (development only) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Your app JS (with JSX) -->
+  <script type="text/babel" src="app.js"></script>
+</body>
+</html>
