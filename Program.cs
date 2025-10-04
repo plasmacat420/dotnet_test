@@ -105,7 +105,15 @@ app.UseHttpsRedirection();
 // [5] Static Files
 // Serves files from wwwroot folder (your frontend)
 app.UseDefaultFiles(); // Serves index.html by default
-app.UseStaticFiles();   // Serves all static files
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        // Force browsers to always revalidate cached files
+        // This ensures users always get the latest version
+        ctx.Context.Response.Headers["Cache-Control"] = "public, max-age=0, must-revalidate";
+    }
+});
 
 // [6] Response Compression
 // Compresses responses to reduce bandwidth
