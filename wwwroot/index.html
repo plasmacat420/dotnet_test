@@ -1,28 +1,61 @@
-<!-- SimpleApi/wwwroot/index.html -->
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Contact — Faiz</title>
-
-  <!-- Tailwind CDN (quick) — ok for prototyping only -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Optional: small style overrides -->
+  <title>Contact — Faiz | Prepreater & Co.</title>
+  
+  <meta name="description" content="Faiz - UI Developer & Competitive Coder. Building elegant, fast interfaces. Let's create something amazing." />
+  <meta name="author" content="Faiz - Prepreater & Co." />
+  
+  <meta property="og:title" content="Contact Faiz | Prepreater & Co." />
+  <meta property="og:description" content="UI Developer specializing in elegant, fast interfaces" />
+  <meta property="og:type" content="website" />
+  
+  <meta name="theme-color" content="#0a1628" />
+  
+  <link rel="preconnect" href="https://unpkg.com" crossorigin />
   <link rel="stylesheet" href="style.css" />
 </head>
-<body class="bg-slate-900 text-gray-100 min-h-screen flex items-center justify-center">
-  <div id="root" class="w-full max-w-md"></div>
 
-  <!-- React + ReactDOM from CDN (development) -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<body>
+  <!-- Static ambient orbs -->
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
 
-  <!-- Babel for in-browser JSX transform (development only) -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- React mounts here -->
+  <div id="root"></div>
 
-  <!-- Your app JS (with JSX) -->
-  <script type="text/babel" src="app.js"></script>
+  <!-- Brand footer -->
+  <div class="brand-footer">
+    <div class="brand-logo">
+      <svg class="octopus-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M32 12C24 12 18 18 18 26C18 28 18.5 29.8 19.3 31.4L16 42L20 40L22 46L26 44L28 50L32 48L36 50L38 44L42 46L44 40L48 42L44.7 31.4C45.5 29.8 46 28 46 26C46 18 40 12 32 12Z" 
+          fill="currentColor" opacity="0.3"/>
+        <circle cx="32" cy="24" r="14" fill="currentColor"/>
+        <path d="M20 40C20 40 18 44 18 48C18 50 19 52 21 52C23 52 24 50 24 48C24 44 22 40 22 40" 
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <path d="M28 44C28 44 26 48 26 52C26 54 27 56 29 56C31 56 32 54 32 52C32 48 30 44 30 44" 
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <path d="M36 44C36 44 34 48 34 52C34 54 35 56 37 56C39 56 40 54 40 52C40 48 38 44 38 44" 
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <path d="M44 40C44 40 42 44 42 48C42 50 43 52 45 52C47 52 48 50 48 48C48 44 46 40 46 40" 
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <circle cx="28" cy="22" r="2" fill="#0a1628"/>
+        <circle cx="36" cy="22" r="2" fill="#0a1628"/>
+      </svg>
+      <div>
+        <span class="brand-text">PREPREATER</span><span class="brand-co">& CO.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- React libraries -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- App -->
+  <script src="app.js"></script>
 </body>
 </html>
