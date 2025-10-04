@@ -629,25 +629,6 @@ body::before {
 }
 
 /* Skip to main content link */
-.skip-link {
-  position: absolute;
-  top: -100px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--accent-green);
-  color: var(--bg-primary);
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 700;
-  text-decoration: none;
-  z-index: 10000;
-  transition: top 0.3s;
-}
-
-.skip-link:focus {
-  top: 20px;
-}
-
 /* ============================================
    LOADING ANIMATION
    ============================================ */
