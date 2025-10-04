@@ -34,6 +34,11 @@ C:\Users\faiz0\Downloads\codes\dotnet_test\SimpleApi\bin\Debug\net9.0\Swashbuckl
 C:\Users\faiz0\Downloads\codes\dotnet_test\SimpleApi\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerGen.dll
 C:\Users\faiz0\Downloads\codes\dotnet_test\SimpleApi\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerUI.dll
 C:\Users\faiz0\Downloads\codes\dotnet_test\SimpleApi\bin\Debug\net9.0\SimpleApi.staticwebassets.runtime.json
-C:\Users\faiz0\Downloads\codes\dotnet_test\SimpleApi\obj\Debug\net9.0\compressed\swbv0nmpc0-1odlx5qqc9.gz
-C:\Users\faiz0\Downloads\codes\dotnet_test\SimpleApi\obj\Debug\net9.0\compressed\y5mfpzao5s-pc76ucmk6e.gz
-C:\Users\faiz0\Downloads\codes\dotnet_test\SimpleApi\obj\Debug\net9.0\compressed\y33eqmbwud-wqtowo4v5k.gz
+C:\Users\faiz0\Downloads\codes\dotnet_test\SimpleApi\obj\Debug\net9.0\SimpleApi.sourcelink.json
+C:\Users\faiz0\Downloads\codes\dotnet_test\SimpleApi\obj\Debug\net9.0\compressed\el78yii17m-uqn6gwi7wo.gz
+C:\Users\faiz0\Downloads\codes\dotnet_test\SimpleApi\obj\Debug\net9.0\compressed\y5mfpzao5s-v307upjpcq.gz
+C:\Users\faiz0\Downloads\codes\dotnet_test\SimpleApi\obj\Debug\net9.0\compressed\retjnhvt41-dtxu4e3zne.gz
+C:\Users\faiz0\Downloads\codes\dotnet_test\SimpleApi\obj\Debug\net9.0\compressed\y33eqmbwud-w7dytsix6q.gz
+C:\Users\faiz0\Downloads\codes\dotnet_test\SimpleApi\bin\Debug\net9.0\SimpleApi.xml
+C:\Users\faiz0\Downloads\codes\dotnet_test\SimpleApi\obj\Debug\net9.0\compressed\swbv0nmpc0-ce70ia3o8r.gz
+C:\Users\faiz0\Downloads\codes\dotnet_test\SimpleApi\obj\Debug\net9.0\SimpleApi.xml

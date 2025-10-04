@@ -365,11 +365,19 @@ body::before {
   align-items: center;
   border: 1px solid var(--glass-border);
   box-shadow: 0 24px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1);
+  -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   transition: transform 0.35s cubic-bezier(0.2,0.8,0.2,1), box-shadow 0.35s;
   position: relative;
   overflow: hidden;
   z-index: 10;
+}
+
+/* Firefox fallback - stronger background */
+@supports not (backdrop-filter: blur(20px)) {
+  .board {
+    background: linear-gradient(135deg, rgba(10, 22, 40, 0.92), rgba(4, 16, 38, 0.95));
+  }
 }
 
 .board::before {
@@ -593,6 +601,147 @@ body::before {
 }
 
 /* ============================================
+   KEYBOARD NAVIGATION & FOCUS STATES
+   ============================================ */
+
+/* Focus visible for keyboard navigation */
+.skate-deck:focus-visible {
+  outline: 3px solid var(--accent-green);
+  outline-offset: 4px;
+  box-shadow: 0 18px 45px rgba(110, 231, 183, 0.4),
+              0 0 0 4px rgba(110, 231, 183, 0.2),
+              inset 0 2px 4px rgba(255,255,255,0.12);
+}
+
+.skate-btn:focus-visible {
+  outline: 3px solid var(--accent-green);
+  outline-offset: 3px;
+  transform: translateY(-12px) scale(1.12);
+  box-shadow: 0 22px 50px rgba(110, 231, 183, 0.5),
+              0 0 0 4px rgba(110, 231, 183, 0.3),
+              inset 0 1px 3px rgba(255, 255, 255, 0.6);
+}
+
+/* Remove default outline */
+.skate-deck:focus,
+.skate-btn:focus {
+  outline: none;
+}
+
+/* Skip to main content link */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent-green);
+  color: var(--bg-primary);
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 700;
+  text-decoration: none;
+  z-index: 10000;
+  transition: top 0.3s;
+}
+
+.skip-link:focus {
+  top: 20px;
+}
+
+/* ============================================
+   LOADING ANIMATION
+   ============================================ */
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeOut 0.6s ease 0.8s forwards;
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+.loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid rgba(110, 231, 183, 0.1);
+  border-top: 4px solid var(--accent-green);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-screen .brand-preview {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, calc(-50% + 80px));
+  opacity: 0.6;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent-green);
+}
+
+/* Error boundary fallback */
+.error-boundary {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.error-content {
+  max-width: 500px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 40px 30px;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+
+.error-content h1 {
+  color: var(--accent-green);
+  font-size: 2rem;
+  margin-bottom: 16px;
+}
+
+.error-content p {
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.error-content button {
+  background: linear-gradient(135deg, var(--accent-green), var(--accent-teal));
+  color: var(--bg-primary);
+  border: none;
+  padding: 12px 32px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.error-content button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(110, 231, 183, 0.4);
+}
+
+/* ============================================
    TYPEWRITER TEXT
    ============================================ */
 .ghost {
@@ -619,6 +768,11 @@ body::before {
   margin-top: 32px;
   text-align: center;
   font-weight: 500;
+  transition: color 0.3s;
+}
+
+.board:hover .caption {
+  color: var(--text);
 }
 
 /* ============================================
@@ -634,9 +788,16 @@ body::before {
   align-items: center;
   justify-content: center;
   background: linear-gradient(180deg, transparent 0%, rgba(6, 16, 38, 0.95) 30%, rgba(4, 16, 38, 0.98) 100%);
+  -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   border-top: 1px solid rgba(110, 231, 183, 0.1);
   z-index: 100;
+}
+
+@supports not (backdrop-filter: blur(20px)) {
+  .brand-footer {
+    background: linear-gradient(180deg, rgba(6, 16, 38, 0.7) 0%, rgba(6, 16, 38, 0.95) 30%, rgba(4, 16, 38, 1) 100%);
+  }
 }
 
 .brand-logo {
@@ -680,12 +841,66 @@ body::before {
 /* ============================================
    RESPONSIVE
    ============================================ */
+
+/* Large Desktop - Premium experience */
+@media (min-width: 1440px) {
+  :root {
+    --size: 420px;
+  }
+
+  .board {
+    padding: 40px 32px 68px;
+  }
+
+  .photo-wrap {
+    width: 160px;
+    height: 160px;
+  }
+
+  .skate-deck {
+    font-size: 1.05rem;
+  }
+
+  .ghost {
+    font-size: 1.1rem;
+  }
+
+  .brand-text {
+    font-size: 2.3rem;
+  }
+}
+
+/* Tablet - Optimized layout */
+@media (min-width: 481px) and (max-width: 1024px) {
+  :root {
+    --size: 400px;
+  }
+
+  .elemental-orb {
+    width: 42px;
+    height: 42px;
+  }
+
+  .tentacle {
+    width: 140px;
+  }
+
+  .brand-footer {
+    height: 110px;
+  }
+
+  .center-wrap {
+    padding: 36px 24px 150px;
+  }
+}
+
+/* Mobile - Compact & efficient */
 @media (max-width: 480px) {
   :root {
     --size: 92vw;
     --skate-h: 64px;
   }
-  
+
   .photo-wrap { width: 120px; height: 120px; }
   .skate-btn { width: 46px; height: 46px; }
   .icon { width: 20px; height: 20px; }
@@ -695,9 +910,11 @@ body::before {
   .wheels { bottom: -32px; }
   .center-wrap { padding: 28px 20px 140px; }
   .ghost { font-size: 0.9rem; }
-  .elemental-orb { width: 35px; height: 35px; }
+  .elemental-orb { width: 35px; height: 35px; margin-left: -17.5px; margin-top: -17.5px; }
   .tentacle { width: 100px; }
   .tentacle-3 { display: none; }
+  .board { padding: 28px 20px 54px; }
+  .skate-deck { font-size: 0.85rem; padding: 14px 20px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

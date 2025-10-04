@@ -4,7 +4,50 @@
 // Features: Orbiting elemental orbs, animated tentacles, interactive card
 // ============================================
 
-const { useState, useEffect, useRef } = React;
+const { useState, useEffect, useRef, Component } = React;
+
+// ============================================
+// ERROR BOUNDARY COMPONENT
+// ============================================
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('React Error Boundary caught:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return React.createElement('div', { className: 'error-boundary' },
+        React.createElement('div', { className: 'error-content' },
+          React.createElement('h1', null, 'Oops! Something went wrong'),
+          React.createElement('p', null, 'We encountered an unexpected error. Please try refreshing the page.'),
+          React.createElement('button', {
+            onClick: () => window.location.reload()
+          }, 'Reload Page')
+        )
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// ============================================
+// LOADING SCREEN COMPONENT
+// ============================================
+function LoadingScreen() {
+  return React.createElement('div', { className: 'loading-screen' },
+    React.createElement('div', { className: 'loading-spinner' }),
+    React.createElement('div', { className: 'brand-preview' }, 'PREPREATER & CO.')
+  );
+}
 
 // ============================================
 // ICON COMPONENT - Social Media & Speaker Icons
@@ -241,6 +284,7 @@ function ContactCard() {
 
   const speakingRef = useRef(false);
   const speakIndexRef = useRef(0); // Track which sentence to speak next
+  const queueRef = useRef([]); // Queue for speech synthesis
 
   // Typewriter effect
   useEffect(() => {
@@ -267,33 +311,37 @@ function ContactCard() {
     }
   }, [charIdx, idx, visible]);
 
-  // Speech synthesis
+  // Speech synthesis - One sentence per click
   const speak = () => {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
-    speakingRef.current = true;
-    queueRef.current = sentences.map(s => s);
 
-    const playNext = () => {
-      const next = queueRef.current.shift();
-      if (!next) {
-        speakingRef.current = false;
-        return;
-      }
-      const utterance = new SpeechSynthesisUtterance(next);
-      utterance.rate = 1.05;
-      utterance.pitch = 1.05;
-      utterance.onend = () => setTimeout(playNext, 300);
-      utterance.onerror = playNext;
-      window.speechSynthesis.speak(utterance);
+    // Get current sentence based on index
+    const currentSentence = sentences[speakIndexRef.current];
+
+    // Create and speak utterance
+    const utterance = new SpeechSynthesisUtterance(currentSentence);
+    utterance.rate = 1.05;
+    utterance.pitch = 1.05;
+
+    utterance.onend = () => {
+      speakingRef.current = false;
     };
-    playNext();
+
+    utterance.onerror = () => {
+      speakingRef.current = false;
+    };
+
+    window.speechSynthesis.speak(utterance);
+    speakingRef.current = true;
+
+    // Move to next sentence (loop back to 0 after last)
+    speakIndexRef.current = (speakIndexRef.current + 1) % sentences.length;
   };
 
   const stopSpeech = () => {
     if (window.speechSynthesis) window.speechSynthesis.cancel();
     speakingRef.current = false;
-    queueRef.current = [];
   };
 
   const copyEmail = (e) => {
@@ -325,52 +373,72 @@ function ContactCard() {
     github: "https://github.com/plasmacat420"
   };
 
-  return React.createElement('div', { className: "board" },
+  return React.createElement('div', {
+      className: "board",
+      id: "main-content",
+      role: "article",
+      'aria-label': "Contact information for Faiz"
+    },
     // Photo
     React.createElement('div', { className: "photo-wrap" },
-      React.createElement('img', { 
-        src: "me.jpg", 
-        alt: "Faiz",
+      React.createElement('img', {
+        src: "me.jpg",
+        alt: "Faiz - UI Developer & Competitive Coder",
+        loading: "eager",
+        decoding: "async",
         onError: e => e.target.style.display = 'none'
       })
     ),
-    
+
     // Skateboard
     React.createElement('div', { className: "skateboard" },
-      copied && React.createElement('div', { className: 'copy-notification' }, '✓ Email Copied!'),
-      
+      copied && React.createElement('div', {
+        className: 'copy-notification',
+        role: 'status',
+        'aria-live': 'polite'
+      }, '✓ Email Copied!'),
+
       React.createElement('a', {
         className: "skate-deck",
         href: "mailto:faiz.corsair@gmail.com",
+        'aria-label': "Email Faiz at faiz.corsair@gmail.com. Right-click to copy email address",
         onClick: e => { stopSpeech(); setTimeout(() => window.location.href = "mailto:faiz.corsair@gmail.com", 10); },
         onContextMenu: copyEmail
       }, "faiz.corsair@gmail.com"),
       
-      React.createElement('div', { className: "wheels" },
+      React.createElement('div', {
+        className: "wheels",
+        role: "navigation",
+        'aria-label': "Social media links"
+      },
         ['linkedin', 'leetcode', 'github'].map(social =>
           React.createElement('a', {
             key: social,
             className: "skate-btn",
             href: LINKS[social],
             target: "_blank",
-            rel: "noreferrer"
+            rel: "noopener noreferrer",
+            'aria-label': `Visit Faiz's ${social.charAt(0).toUpperCase() + social.slice(1)} profile (opens in new tab)`
           }, React.createElement(Icon, { name: social }))
         ),
         React.createElement('button', {
           className: "skate-btn",
+          'aria-label': "Listen to introduction using text-to-speech",
           onClick: e => { e.preventDefault(); stopSpeech(); setTimeout(speak, 80); }
         }, React.createElement(Icon, { name: "speak" }))
       )
     ),
-    
+
     // Typewriter text
     React.createElement('div', {
       className: "ghost",
+      'aria-live': 'polite',
+      'aria-atomic': 'true',
       style: { opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(-8px)' }
     },
       React.createElement('span', null, text)
     ),
-    
+
     // Caption
     React.createElement('div', { className: "caption" }, "Modern UI · Fast interactions · DM for collabs")
   );
@@ -380,11 +448,22 @@ function ContactCard() {
 // MAIN APP
 // ============================================
 function App() {
-  return React.createElement('div', { className: 'app-container' },
-    React.createElement(OrbitalElements),
-    React.createElement(Tentacles),
-    React.createElement('div', { className: 'center-wrap' },
-      React.createElement(ContactCard)
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate initial load time for smooth transition
+    const timer = setTimeout(() => setLoading(false), 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return React.createElement(ErrorBoundary, null,
+    loading && React.createElement(LoadingScreen),
+    React.createElement('div', { className: 'app-container' },
+      React.createElement(OrbitalElements),
+      React.createElement(Tentacles),
+      React.createElement('div', { className: 'center-wrap' },
+        React.createElement(ContactCard)
+      )
     )
   );
 }

@@ -3,29 +3,61 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Contact — Faiz | Prepreater & Co.</title>
-  
-  <meta name="description" content="Faiz - UI Developer & Competitive Coder. Building elegant, fast interfaces. Let's create something amazing." />
-  <meta name="author" content="Faiz - Prepreater & Co." />
-  
-  <meta property="og:title" content="Contact Faiz | Prepreater & Co." />
-  <meta property="og:description" content="UI Developer specializing in elegant, fast interfaces" />
+  <title>Contact Faiz | UI Developer & Competitive Coder | Prepreater & Co.</title>
+
+  <!-- Primary Meta Tags -->
+  <meta name="title" content="Contact Faiz | UI Developer & Competitive Coder" />
+  <meta name="description" content="Faiz - UI Developer & Competitive Coder. Building elegant, fast interfaces with modern web technologies. Specializing in React, TypeScript, and .NET. Let's create something amazing together!" />
+  <meta name="author" content="Faiz Shaikh - Prepreater & Co." />
+  <meta name="keywords" content="UI Developer, Frontend Developer, React, TypeScript, .NET, Competitive Programming, Web Development, Faiz Shaikh" />
+
+  <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
-  
+  <meta property="og:url" content="https://prepreater.com/" />
+  <meta property="og:title" content="Contact Faiz | UI Developer & Competitive Coder | Prepreater & Co." />
+  <meta property="og:description" content="Building elegant, fast interfaces with modern web technologies. React, TypeScript, .NET specialist. Let's collaborate!" />
+  <meta property="og:image" content="https://prepreater.com/me.jpg" />
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://prepreater.com/" />
+  <meta property="twitter:title" content="Contact Faiz | UI Developer & Competitive Coder" />
+  <meta property="twitter:description" content="Building elegant, fast interfaces. React, TypeScript, .NET specialist. Let's collaborate!" />
+  <meta property="twitter:image" content="https://prepreater.com/me.jpg" />
+
   <meta name="theme-color" content="#0a1628" />
-  
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://prepreater.com/" />
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Faiz Contact" />
+  <link rel="apple-touch-icon" href="/me.jpg" />
+
+  <!-- Performance optimizations -->
   <link rel="preconnect" href="https://unpkg.com" crossorigin />
+  <link rel="dns-prefetch" href="https://unpkg.com" />
+  <link rel="preload" href="style.css" as="style" />
+  <link rel="preload" href="me.jpg" as="image" />
+  <link rel="preload" href="https://unpkg.com/react@18/umd/react.production.min.js" as="script" crossorigin />
+  <link rel="preload" href="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" as="script" crossorigin />
   <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
+  <!-- Skip to main content for screen readers -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
   <!-- Static ambient orbs -->
-  <div class="orb orb-1"></div>
-  <div class="orb orb-2"></div>
-  <div class="orb orb-3"></div>
+  <div class="orb orb-1" aria-hidden="true"></div>
+  <div class="orb orb-2" aria-hidden="true"></div>
+  <div class="orb orb-3" aria-hidden="true"></div>
 
   <!-- React mounts here -->
-  <div id="root"></div>
+  <div id="root" role="main"></div>
 
   <!-- Brand footer -->
   <div class="brand-footer">
