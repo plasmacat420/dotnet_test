@@ -1,0 +1,117 @@
+# ============================================
+# DOCKER COMPOSE - VOICE AGENT STACK
+# ============================================
+# Orchestrates .NET API + Python Agent
+# Usage:
+#   Development: docker-compose up
+#   Production:  docker-compose -f docker-compose.yml up -d
+# ============================================
+
+version: '3.8'
+
+services:
+  # ==========================================
+  # .NET WEB API SERVICE
+  # ==========================================
+  api:
+    build:
+      context: ./SimpleApi
+      dockerfile: Dockerfile
+    container_name: voiceagent-api
+    ports:
+      - "5264:8080"  # Map host:5264 to container:8080
+    environment:
+      # ASP.NET Core settings
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}
+      - ASPNETCORE_URLS=http://+:8080
+
+      # LiveKit configuration (from .env file)
+      - LiveKit__Url=${LIVEKIT_URL}
+      - LiveKit__ApiKey=${LIVEKIT_API_KEY}
+      - LiveKit__ApiSecret=${LIVEKIT_API_SECRET}
+
+      # Logging
+      - Logging__LogLevel__Default=Information
+      - Logging__LogLevel__Microsoft.AspNetCore=Warning
+
+    volumes:
+      # Mount wwwroot for frontend file updates (development)
+      - ./SimpleApi/wwwroot:/app/wwwroot:ro
+
+    networks:
+      - voiceagent-network
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+
+    restart: unless-stopped
+
+  # ==========================================
+  # PYTHON VOICE AGENT SERVICE
+  # ==========================================
+  agent:
+    build:
+      context: ./voice-agent-py
+      dockerfile: Dockerfile
+    container_name: voiceagent-worker
+    environment:
+      # LiveKit configuration
+      - LIVEKIT_URL=${LIVEKIT_URL}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+
+      # Speech-to-Text (STT)
+      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY}
+      - SARVAM_API_KEY=${SARVAM_API_KEY}
+
+      # Large Language Model (LLM)
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT:-}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY:-}
+
+      # Agent settings
+      - AGENT_PORT=${AGENT_PORT:-8081}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - PLAYGROUND_MODE=${PLAYGROUND_MODE:-false}
+
+      # Python settings
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+
+    ports:
+      - "${AGENT_PORT:-8081}:8081"  # Metrics/health endpoint
+
+    networks:
+      - voiceagent-network
+
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "python.*agent.py"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+    restart: unless-stopped
+
+    depends_on:
+      api:
+        condition: service_healthy
+
+# ==========================================
+# NETWORKS
+# ==========================================
+networks:
+  voiceagent-network:
+    driver: bridge
+    name: voiceagent-network
+
+# ==========================================
+# VOLUMES (Optional - for persistent data)
+# ==========================================
+# volumes:
+#   agent-logs:
+#     name: voiceagent-logs

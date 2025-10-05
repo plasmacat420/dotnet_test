@@ -1,0 +1,48 @@
+# ============================================
+# DOCKER COMPOSE OVERRIDE - DEVELOPMENT
+# ============================================
+# Automatically loaded when running: docker-compose up
+# Adds development-specific features:
+#   - Hot reload / live code updates
+#   - Verbose logging
+#   - Debug ports
+# ============================================
+
+version: '3.8'
+
+services:
+  api:
+    environment:
+      # Development environment
+      - ASPNETCORE_ENVIRONMENT=Development
+
+      # Verbose logging for debugging
+      - Logging__LogLevel__Default=Debug
+      - Logging__LogLevel__Microsoft.AspNetCore=Information
+
+    # volumes:
+      # Mount source code for hot reload (DISABLED - conflicts with published DLL)
+      # - ./SimpleApi:/app:ro
+
+      # Mount wwwroot for frontend updates
+      # - ./SimpleApi/wwwroot:/app/wwwroot
+
+    # Override command for watch mode (auto-restart on changes)
+    # Note: Requires dotnet-watch in the image
+    # command: ["dotnet", "watch", "run", "--no-launch-profile"]
+
+  agent:
+    environment:
+      # Development mode
+      - LOG_LEVEL=DEBUG
+
+      # Enable playground mode (optional)
+      # - PLAYGROUND_MODE=true
+
+    # volumes:
+      # Mount source code for live updates (DISABLED for initial test)
+      # - ./voice-agent-py:/app:ro
+
+    # Keep stdin open for debugging
+    stdin_open: true
+    tty: true
