@@ -1,0 +1,263 @@
+# ============================================
+# MONOREPO GITIGNORE
+# Voice Agent Project (.NET + Python)
+# ============================================
+
+# ============================================
+# SECRETS & ENVIRONMENT FILES (NEVER COMMIT!)
+# ============================================
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+*.env
+
+# API Keys and credentials
+**/appsettings.Development.json
+**/appsettings.Production.json
+secrets.json
+*.key
+*.pem
+
+# ============================================
+# .NET / C# (SimpleApi)
+# ============================================
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.sln.iml
+
+# Build artifacts
+*.dll
+*.exe
+*.pdb
+*.cache
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+*.nuget.props
+*.nuget.targets
+
+# ASP.NET
+*.[Pp]ublish.xml
+*.azurePubxml
+*.pubxml
+*.publishproj
+
+# Database files
+*.mdf
+*.ldf
+*.ndf
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================
+# PYTHON (voice-agent-py)
+# ============================================
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# uv
+uv.lock
+
+# ============================================
+# DOCKER
+# ============================================
+docker-compose.override.local.yml
+.dockerignore.local
+
+# ============================================
+# NODE.JS (if using npm/pnpm)
+# ============================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-store/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ============================================
+# IDEs & EDITORS
+# ============================================
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# ============================================
+# OPERATING SYSTEM
+# ============================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# ============================================
+# LOGS & TEMPORARY FILES
+# ============================================
+*.log
+logs/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Agent logs
+agent.log
+agent-*.log
+
+# ============================================
+# TESTING & COVERAGE
+# ============================================
+TestResults/
+coverage/
+*.trx
+*.coveragexml
+
+# ============================================
+# COMPILED / GENERATED FILES
+# ============================================
+*.min.js
+*.min.css
+
+# ============================================
+# ALLOW THESE FILES (EXCEPTIONS)
+# ============================================
+# Keep static assets
+!wwwroot/
+!**/wwwroot/**
+
+# Keep documentation
+!README.md
+!DOCKER.md
+!*.md
+
+# Keep configuration templates
+!.env.example
+!appsettings.json
+
+# ============================================
+# PROJECT-SPECIFIC IGNORES
+# ============================================
+# Voice agent specific
+voice-agent/agent.log
+voice-agent-py/agent.log
+
+# LiveKit local testing
+livekit-*.log
+
+# Backup files
+*.bak
+*.backup
+*-backup.*
