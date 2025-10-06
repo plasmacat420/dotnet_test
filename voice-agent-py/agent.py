@@ -177,7 +177,7 @@ def validate_environment():
         "LIVEKIT_API_SECRET",
         "DEEPGRAM_API_KEY",
         "GROQ_API_KEY",
-        "SARVAM_API_KEY"
+        "SARVAM_API_KEY",
         "ELEVENLABS_API_KEY"
     ]
 
