@@ -5,7 +5,7 @@ import os
 
 from livekit import agents
 from livekit.agents import JobContext
-from livekit.plugins import deepgram, openai, silero, google, groq, sarvam
+from livekit.plugins import deepgram, openai, silero, google, groq, sarvam, elevenlabs
 
 import modular.config as config
 from modular.conversation_manager import ConversationManager
@@ -106,11 +106,26 @@ def prewarm_fnc(proc: agents.JobProcess):
             model="llama-3.3-70b-versatile"  # Fast, accurate, great for voice
         )
 
-        # Sarvam TTS (English-India)
-        proc.userdata["tts"] = sarvam.TTS(
-            target_language_code="en-IN",
-            speaker="manisha"
-        )
+        # TTS based on config (default: ElevenLabs for smooth voice)
+        if config.TTS_PROVIDER == "elevenlabs":
+            proc.userdata["tts"] = elevenlabs.TTS(
+                model_id=config.TTS_MODEL,
+                voice=config.TTS_VOICE
+            )
+        elif config.TTS_PROVIDER == "openai":
+            proc.userdata["tts"] = openai.TTS(voice=config.TTS_VOICE)
+        elif config.TTS_PROVIDER == "sarvam":
+            proc.userdata["tts"] = sarvam.TTS(
+                target_language_code="en-IN",
+                speaker=config.TTS_VOICE
+            )
+        else:
+            # Default to ElevenLabs
+            proc.userdata["tts"] = elevenlabs.TTS(
+                model_id="eleven_turbo_v2",
+                voice="Rachel"
+            )
+
 
         # Silero VAD
         proc.userdata["vad"] = silero.VAD.load(
@@ -163,6 +178,7 @@ def validate_environment():
         "DEEPGRAM_API_KEY",
         "GROQ_API_KEY",
         "SARVAM_API_KEY"
+        "ELEVENLABS_API_KEY"
     ]
 
     missing = [var for var in required_vars if not os.getenv(var)]

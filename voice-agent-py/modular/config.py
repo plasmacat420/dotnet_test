@@ -6,8 +6,8 @@ load_dotenv("../../.env")
 
 # Agent Configuration
 AGENT_NAME = "hindi-voice-agent"
-AGENT_PORT = 8765
-PLAYGROUND_MODE = True  # Set to False for production/SIP mode
+AGENT_PORT = int(os.getenv("AGENT_PORT", "8765"))
+PLAYGROUND_MODE = os.getenv("PLAYGROUND_MODE", "True").lower() == "true"
 
 # LiveKit Configuration
 LIVEKIT_URL = os.getenv("LIVEKIT_URL")
@@ -59,3 +59,8 @@ Always be helpful, never pushy. Make them feel heard and understood."""
 PRIMARY_LANGUAGE = "hi"  # Hindi
 SECONDARY_LANGUAGE = "en"  # English
 TERTIARY_LANGUAGE = "mr"  # Marathi
+
+# TTS Configuration
+TTS_PROVIDER = os.getenv("TTS_PROVIDER", "elevenlabs")  # elevenlabs, openai, azure, google, sarvam
+TTS_VOICE = os.getenv("TTS_VOICE", "Rachel")  # Voice name/ID
+TTS_MODEL = os.getenv("TTS_MODEL", "eleven_turbo_v2")  # Model (for ElevenLabs)
