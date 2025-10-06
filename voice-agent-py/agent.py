@@ -81,13 +81,26 @@ async def entrypoint(ctx: JobContext):
         logger.info(f"{agent_log_prefix} Agent job completed")
 
 
+# async def request_fnc(req: agents.JobRequest):
+#     """Accept job requests"""
+#     await req.accept(
+#         name=config.AGENT_NAME,
+#         identity=config.AGENT_NAME,
+#         attributes={"language": "hi-en"}
+#     )
+
 async def request_fnc(req: agents.JobRequest):
-    """Accept job requests"""
-    await req.accept(
-        name=config.AGENT_NAME,
-        identity=config.AGENT_NAME,
-        attributes={"language": "hi-en"}
-    )
+      """Accept job requests"""
+      if config.PLAYGROUND_MODE:
+          # Playground mode: accept any job
+          await req.accept()
+      else:
+          # Production mode: only accept jobs for this specific agent
+          await req.accept(
+              name=config.AGENT_NAME,
+              identity=config.AGENT_NAME,
+              attributes={"language": "hi-en"}
+          )
 
 
 def prewarm_fnc(proc: agents.JobProcess):
