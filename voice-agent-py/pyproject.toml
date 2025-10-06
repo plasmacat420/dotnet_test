@@ -8,5 +8,6 @@ dependencies = [
     "livekit-agents[deepgram,google,openai,silero]>=1.2.14",
     "livekit-plugins-groq>=0.6.1",
     "livekit-plugins-sarvam>=0.2.0",
+    "livekit-plugins-elevenlabs>=0.1.0",
     "python-dotenv>=1.1.1",
 ]

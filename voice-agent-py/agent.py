@@ -114,9 +114,15 @@ def prewarm_fnc(proc: agents.JobProcess):
             )
         elif config.TTS_PROVIDER == "openai":
             proc.userdata["tts"] = openai.TTS(voice=config.TTS_VOICE)
+        elif config.TTS_PROVIDER == "azure":
+            proc.userdata["tts"] = openai.TTS(
+                voice=config.TTS_VOICE,
+                api_key=config.AZURE_OPENAI_KEY,
+                base_url=f"{config.AZURE_OPENAI_ENDPOINT.rstrip('/')}/openai/deployments/tts"
+            )
         elif config.TTS_PROVIDER == "sarvam":
             proc.userdata["tts"] = sarvam.TTS(
-                target_language_code="en-IN",
+                target_language_code="mr-IN",
                 speaker=config.TTS_VOICE
             )
         else:
