@@ -79,7 +79,8 @@ class LiveKitVoiceClient {
           this.isConnected = false;
           this.isConnecting = false;
           if (this.onError) {
-            this.onError('Failed to connect after multiple attempts. The agent may be sleeping or unavailable.');
+            const friendlyError = this._getFriendlyErrorMessage(error);
+            this.onError(`${friendlyError} (Tried ${this.maxRetries} times)`);
           }
           throw error;
         }
@@ -172,7 +173,9 @@ class LiveKitVoiceClient {
         this.room = null;
       }
 
-      throw error;
+      // Throw user-friendly error message
+      const friendlyError = this._getFriendlyErrorMessage(error);
+      throw new Error(friendlyError);
     }
   }
 
@@ -215,6 +218,37 @@ class LiveKitVoiceClient {
    */
   _sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Convert technical errors to user-friendly messages
+   */
+  _getFriendlyErrorMessage(error) {
+    const errorMessage = error.message || error.toString().toLowerCase();
+
+    // Check for specific error types
+    if (errorMessage.includes('invalid token') || errorMessage.includes('unauthorized') || errorMessage.includes('401')) {
+      return 'Connection credentials expired. Please refresh the page and try again.';
+    }
+
+    if (errorMessage.includes('network') || errorMessage.includes('timeout') || errorMessage.includes('failed to fetch')) {
+      return 'Network connection failed. Check your internet and try again.';
+    }
+
+    if (errorMessage.includes('permission') || errorMessage.includes('microphone')) {
+      return 'Microphone access denied. Please allow microphone permissions and try again.';
+    }
+
+    if (errorMessage.includes('agent did not wake up')) {
+      return 'Voice agent is taking longer than expected. Please try again in a moment.';
+    }
+
+    if (errorMessage.includes('websocket') || errorMessage.includes('connection closed')) {
+      return 'Connection interrupted. Please try again.';
+    }
+
+    // Default friendly message
+    return 'Unable to connect to voice assistant. Please try again.';
   }
 
   /**
