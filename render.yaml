@@ -4,8 +4,8 @@ services:
     env: python
     region: oregon
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: python agent.py
+    buildCommand: pip install -r voice-agent-py/requirements.txt
+    startCommand: python voice-agent-py/agent.py
     envVars:
       - key: LIVEKIT_URL
         sync: false
