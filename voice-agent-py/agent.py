@@ -109,7 +109,8 @@ def prewarm_fnc(proc: agents.JobProcess):
         # TTS based on config (default: ElevenLabs for smooth voice)
         if config.TTS_PROVIDER == "elevenlabs":
             proc.userdata["tts"] = elevenlabs.TTS(
-                voice=config.TTS_VOICE
+                voice_id=config.TTS_VOICE,
+                model=config.TTS_ELEVEN_MODEL
             )
         elif config.TTS_PROVIDER == "openai":
             proc.userdata["tts"] = openai.TTS(voice=config.TTS_VOICE)
