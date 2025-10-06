@@ -17,6 +17,8 @@
 **/appsettings.Development.json
 **/appsettings.Production.json
 secrets.json
+.secrets
+**/.secrets
 *.key
 *.pem
 
@@ -256,6 +258,8 @@ voice-agent-py/agent.log
 
 # LiveKit local testing
 livekit-*.log
+livekit.toml
+~/.livekit/
 
 # Backup files
 *.bak
