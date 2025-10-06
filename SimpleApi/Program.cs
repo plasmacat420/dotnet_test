@@ -31,6 +31,8 @@ using SimpleApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Load environment variables from .env file
+EnvironmentConfig.LoadEnvironmentVariables(builder);
 // ═══════════════════════════════════════════════════════════════════════════
 // STEP 2: CONFIGURE SERVICES (Dependency Injection Container)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -72,6 +74,12 @@ builder.Services.Configure<LiveKitOptions>(
 
 // Register LiveKit Token Service
 builder.Services.AddScoped<LiveKitTokenService>();
+
+// Register Email Service
+builder.Services.AddScoped<EmailService>();
+
+// Register Summary Service with HttpClient
+builder.Services.AddHttpClient<SummaryService>();
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STEP 3: BUILD THE APPLICATION

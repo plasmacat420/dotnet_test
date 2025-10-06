@@ -31,57 +31,34 @@ class SessionManager:
             vad=vad,
         )
 
-        # Start the session with room and agent
-        from livekit.agents import Agent
+        # Start the session with basic agent
+        from livekit.agents import Agent, RoomOutputOptions
         agent = Agent(instructions=instructions)
 
+        # Enable LiveKit track transcription (like reference implementation)
         await self.agent_session.start(
             room=ctx.room,
-            agent=agent
+            agent=agent,
+            room_output_options=RoomOutputOptions(
+                transcription_enabled=True,  # Enable automatic track transcription
+            )
         )
 
-        self.logger.info("Agent session started successfully")
+        self.logger.info("Agent session started with track transcription enabled")
 
     def setup_transcript_handler(self, callback):
-        """Setup transcript event handler"""
+        """Setup transcript event handler for backend logging"""
         if self.agent_session:
             self._transcript_handler = callback
 
+            # User transcripts (for backend logging only)
+            # Frontend gets transcripts via LiveKit track transcription
             @self.agent_session.on("user_input_transcribed")
             def on_transcript(transcript):
                 if transcript.is_final:
                     callback(transcript)
 
-            # Capture agent speech as soon as it starts
-            @self.agent_session.on("agent_speech_committed")
-            def on_agent_speech(speech):
-                self.logger.info(f"Agent speech committed: {speech.text[:100]}")
-                self._send_agent_message_to_frontend(speech.text)
-
-            self.logger.info("Transcript handler configured")
-
-    def _send_agent_message_to_frontend(self, text: str):
-        """Send agent message to frontend immediately"""
-        import json
-        from datetime import datetime
-        import asyncio
-
-        if not text:
-            return
-
-        self.logger.info(f"Sending agent speech to frontend: {text[:100]}")
-        data = json.dumps({
-            "type": "transcript",
-            "text": text,
-            "role": "assistant",
-            "timestamp": datetime.now().isoformat()
-        })
-
-        if self.conversation_manager.ctx.room:
-            asyncio.create_task(
-                self.conversation_manager.ctx.room.local_participant.publish_data(data.encode('utf-8'))
-            )
-            self.logger.debug("Agent speech data published")
+            self.logger.info("Transcript handler configured (track transcription enabled)")
 
     def setup_metrics_collector(self):
         """Setup metrics collection (placeholder)"""

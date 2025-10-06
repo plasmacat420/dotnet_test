@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using SimpleApi.Models;
+using SimpleApi.Services;
 using System.Text;
 
 namespace SimpleApi.Controllers;
@@ -10,16 +11,20 @@ namespace SimpleApi.Controllers;
 public class TranscriptController : ControllerBase
 {
     private readonly ILogger<TranscriptController> _logger;
+    private readonly EmailService _emailService;
+    private readonly SummaryService _summaryService;
 
-    public TranscriptController(ILogger<TranscriptController> logger)
+    public TranscriptController(ILogger<TranscriptController> logger, EmailService emailService, SummaryService summaryService)
     {
         _logger = logger;
+        _emailService = emailService;
+        _summaryService = summaryService;
     }
 
     [HttpPost("send")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    public IActionResult SendTranscript([FromBody] TranscriptRequest request)
+    public async Task<IActionResult> SendTranscript([FromBody] TranscriptRequest request)
     {
         if (!ModelState.IsValid)
         {
@@ -33,19 +38,35 @@ public class TranscriptController : ControllerBase
 
         try
         {
-            _logger.LogInformation("Sending transcript for room {RoomName} to {Email}",
+            _logger.LogInformation("Sending transcript summary for room {RoomName} to {Email}",
                 request.RoomName, request.To);
 
-            // Format transcript as HTML email
-            var emailBody = FormatTranscriptEmail(request);
+            // Convert transcript messages to the format expected by SummaryService
+            var conversationMessages = request.Transcript.Messages
+                .Select(m => new Services.ConversationMessage
+                {
+                    Role = m.Role,
+                    Text = m.Text,
+                    Timestamp = m.Timestamp
+                })
+                .ToList();
 
-            // TODO: Integrate with email service (SendGrid, AWS SES, etc.)
-            // For now, just log it
-            _logger.LogInformation("Transcript email body:\n{EmailBody}", emailBody);
+            // Generate AI-powered summary
+            var emailBody = await _summaryService.SummarizeConversationAsync(conversationMessages, request.RoomName);
+
+            // Send email using EmailService
+            var subject = $"Conversation Summary - {request.RoomName}";
+            var emailSent = await _emailService.SendEmailAsync(request.To, subject, emailBody);
+
+            if (!emailSent)
+            {
+                _logger.LogError("Failed to send email to {Email}", request.To);
+                return StatusCode(500, ApiResponse<object>.Error("Failed to send transcript email"));
+            }
 
             return Ok(ApiResponse<object>.Ok(
                 new { sentAt = DateTime.UtcNow },
-                "Transcript sent successfully"
+                "Transcript summary sent successfully"
             ));
         }
         catch (Exception ex)

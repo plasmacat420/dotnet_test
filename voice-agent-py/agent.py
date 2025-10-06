@@ -91,31 +91,51 @@ async def request_fnc(req: agents.JobRequest):
 
 
 def prewarm_fnc(proc: agents.JobProcess):
-    """Preload STT/LLM/TTS/VAD components"""
+    """Preload STT/LLM/TTS/VAD components - optimized for speed"""
     logger.info("Prewarming agent components...")
 
-    # Sarvam STT for Hindi
-    proc.userdata["stt"] = sarvam.STT(language="hi-IN")
+    # Use cached models if available to speed up subsequent connections
+    if not hasattr(prewarm_fnc, '_cached_models'):
+        logger.info("First-time model initialization - this may take a few seconds...")
 
-    # Groq LLM (fast and free)
-    proc.userdata["llm"] = groq.LLM(
-        model="llama-3.3-70b-versatile"  # Fast, accurate, great for voice
-    )
+        # Sarvam STT for English
+        proc.userdata["stt"] = sarvam.STT(language="en-IN")
 
-    # Sarvam TTS (English-India)
-    proc.userdata["tts"] = sarvam.TTS(
-        target_language_code="en-IN",
-        speaker="manisha"
-    )
+        # Groq LLM (fast and free)
+        proc.userdata["llm"] = groq.LLM(
+            model="llama-3.3-70b-versatile"  # Fast, accurate, great for voice
+        )
 
-    # Silero VAD
-    proc.userdata["vad"] = silero.VAD.load(
-        min_speech_duration=0.2,
-        min_silence_duration=0.3,
-        prefix_padding_duration=0.1,
-        activation_threshold=0.55,
-        sample_rate=16000
-    )
+        # Sarvam TTS (English-India)
+        proc.userdata["tts"] = sarvam.TTS(
+            target_language_code="en-IN",
+            speaker="manisha"
+        )
+
+        # Silero VAD
+        proc.userdata["vad"] = silero.VAD.load(
+            min_speech_duration=0.2,
+            min_silence_duration=0.3,
+            prefix_padding_duration=0.1,
+            activation_threshold=0.55,
+            sample_rate=16000
+        )
+
+        # Cache models for reuse
+        prewarm_fnc._cached_models = {
+            "stt": proc.userdata["stt"],
+            "llm": proc.userdata["llm"],
+            "tts": proc.userdata["tts"],
+            "vad": proc.userdata["vad"]
+        }
+        logger.info("Models cached for future use")
+    else:
+        # Reuse cached models for faster startup
+        logger.info("Reusing cached models...")
+        proc.userdata["stt"] = prewarm_fnc._cached_models["stt"]
+        proc.userdata["llm"] = prewarm_fnc._cached_models["llm"]
+        proc.userdata["tts"] = prewarm_fnc._cached_models["tts"]
+        proc.userdata["vad"] = prewarm_fnc._cached_models["vad"]
 
     logger.info("Prewarm completed")
 

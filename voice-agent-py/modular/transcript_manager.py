@@ -42,8 +42,28 @@ class TranscriptManager:
                 "timestamp": am.get("created_at", datetime.now().isoformat())
             })
 
-        # Sort by timestamp
-        all_messages.sort(key=lambda x: x.get("timestamp", ""))
+        # Sort by timestamp (handle both ISO strings and numeric timestamps)
+        def get_sort_key(msg):
+            ts = msg.get("timestamp", "")
+            if isinstance(ts, (int, float)):
+                return ts
+            elif isinstance(ts, str):
+                try:
+                    from dateutil import parser
+                    return parser.parse(ts).timestamp()
+                except:
+                    return 0
+            return 0
+
+        all_messages.sort(key=get_sort_key)
+
+        # Convert all timestamps to ISO strings for API compatibility
+        for msg in all_messages:
+            ts = msg.get("timestamp", "")
+            if isinstance(ts, (int, float)):
+                msg["timestamp"] = datetime.fromtimestamp(ts).isoformat()
+            else:
+                msg["timestamp"] = str(ts)
 
         return {
             "messages": all_messages,
@@ -51,8 +71,8 @@ class TranscriptManager:
                 "total_messages": len(all_messages),
                 "user_messages": len(user_transcripts),
                 "agent_messages": len(agent_messages),
-                "conversation_start": all_messages[0]["timestamp"] if all_messages else None,
-                "conversation_end": all_messages[-1]["timestamp"] if all_messages else None
+                "conversation_start": str(all_messages[0]["timestamp"]) if all_messages else None,
+                "conversation_end": str(all_messages[-1]["timestamp"]) if all_messages else None
             }
         }
 

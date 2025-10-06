@@ -3,11 +3,15 @@
 // ============================================
 
 function ChatWindow({ voiceClient, isConnected, onClose }) {
-  const { useState, useEffect, useRef } = React;
+  const { useState, useEffect, useRef, useMemo } = React;
   const [messages, setMessages] = useState([]);
   const messagesEndRef = useRef(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+
+  // Track segments by ID for updates
+  const segmentsMapRef = useRef(new Map());
+  const updateTimeoutRef = useRef(null);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -19,67 +23,109 @@ function ChatWindow({ voiceClient, isConnected, onClose }) {
     if (isConnected) {
       setIsVisible(true);
     } else {
-      // Delay hiding to allow user to see final message
       const timeout = setTimeout(() => setIsVisible(false), 1000);
       return () => clearTimeout(timeout);
     }
   }, [isConnected]);
 
-  // Listen for transcription events from LiveKit
+  // Rebuild messages from segments (memoized)
+  const rebuildMessages = () => {
+    const allSegments = Array.from(segmentsMapRef.current.values());
+
+    // Sort by timestamp
+    allSegments.sort((a, b) => a.timestamp - b.timestamp);
+
+    // Group consecutive segments from the same speaker
+    const groupedMessages = [];
+    let currentMessage = null;
+
+    allSegments.forEach(segment => {
+      if (!currentMessage || currentMessage.isUser !== segment.isUser) {
+        // Different speaker - start new message
+        if (currentMessage) {
+          groupedMessages.push(currentMessage);
+        }
+        currentMessage = {
+          id: segment.id,
+          text: segment.text,
+          isUser: segment.isUser,
+          timestamp: segment.timestamp,
+          isFinal: segment.final,
+          segmentIds: [segment.id]
+        };
+      } else {
+        // Same speaker - append to current message
+        currentMessage.text += ' ' + segment.text;
+        currentMessage.isFinal = currentMessage.isFinal && segment.final;
+        currentMessage.segmentIds.push(segment.id);
+      }
+    });
+
+    if (currentMessage) {
+      groupedMessages.push(currentMessage);
+    }
+
+    return groupedMessages;
+  };
+
+  // Debounced update function
+  const scheduleUpdate = () => {
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+    }
+
+    updateTimeoutRef.current = setTimeout(() => {
+      setMessages(rebuildMessages());
+    }, 50); // 50ms debounce - smooth but responsive
+  };
+
+  // Listen for LiveKit track transcriptions
   useEffect(() => {
     if (!voiceClient || !voiceClient.room) return;
 
     const room = voiceClient.room;
+    const LiveKit = window.LivekitClient || window.LiveKit;
 
-    // Handle track subscribed (agent audio)
-    const handleTrackSubscribed = (track, publication, participant) => {
-      // Track subscribed - handled silently
+    if (!LiveKit) {
+      console.error('[Chat] LiveKit client not loaded');
+      return;
+    }
+
+    // Handle transcription received event
+    const handleTranscriptionReceived = (segments, participant, publication) => {
+      if (!segments || segments.length === 0) return;
+
+      const isUser = participant === room.localParticipant;
+
+      // Update segments map
+      segments.forEach(segment => {
+        segmentsMapRef.current.set(segment.id, {
+          id: segment.id,
+          text: segment.text,
+          final: segment.final,
+          isUser: isUser,
+          timestamp: Date.now()
+        });
+      });
+
+      // Schedule debounced update
+      scheduleUpdate();
     };
 
-    // Handle data received (can be used for transcripts)
-    const handleDataReceived = (payload, participant) => {
-      try {
-        const decoder = new TextDecoder();
-        const data = JSON.parse(decoder.decode(payload));
+    // Subscribe to transcription events
+    room.on(LiveKit.RoomEvent.TranscriptionReceived, handleTranscriptionReceived);
 
-        if (data.type === 'transcript') {
-          addMessage(data.text, data.role === 'user', Date.now());
-        }
-      } catch (e) {
-        // Non-JSON data received - ignore
-      }
-    };
-
-    room.on(window.LivekitClient.RoomEvent.TrackSubscribed, handleTrackSubscribed);
-    room.on(window.LivekitClient.RoomEvent.DataReceived, handleDataReceived);
+    console.log('[Chat] Subscribed to LiveKit transcription events');
 
     return () => {
-      room.off(window.LivekitClient.RoomEvent.TrackSubscribed, handleTrackSubscribed);
-      room.off(window.LivekitClient.RoomEvent.DataReceived, handleDataReceived);
+      room.off(LiveKit.RoomEvent.TranscriptionReceived, handleTranscriptionReceived);
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+      segmentsMapRef.current.clear();
+      console.log('[Chat] Unsubscribed from transcription events');
     };
   }, [voiceClient]);
-
-  // Add message to chat
-  const addMessage = (text, isUser, timestamp) => {
-    setMessages(prev => {
-      const newMessages = [...prev, {
-        id: Date.now() + Math.random(),
-        text,
-        isUser,
-        timestamp: timestamp || Date.now()
-      }];
-      return newMessages;
-    });
-  };
-
-  // Expose method to add messages (can be called from livekit-voice.js)
-  useEffect(() => {
-    if (isConnected) {
-      window.addChatMessage = addMessage;
-    } else {
-      window.addChatMessage = null;
-    }
-  }, [isConnected]);
 
   if (!isVisible && messages.length === 0) {
     return null;
@@ -104,18 +150,16 @@ function ChatWindow({ voiceClient, isConnected, onClose }) {
     transition: 'opacity 2.5s ease-in-out'
   };
 
-  // Handle close with animation
   const handleClose = () => {
     setIsClosing(true);
     if (onClose) onClose();
-     // Match animation duration
   };
 
   return React.createElement('div', {
     className: `chat-window ${isClosing ? 'curtain-close' : isVisible ? 'curtain-open' : ''}`,
     style: chatStyle
   },
-    // Header with close button
+    // Header
     React.createElement('div', {
       style: {
         padding: '16px 20px',
@@ -130,7 +174,6 @@ function ChatWindow({ voiceClient, isConnected, onClose }) {
         gap: '10px'
       }
     },
-      // Status indicator and text
       React.createElement('div', {
         style: {
           display: 'flex',
@@ -149,7 +192,6 @@ function ChatWindow({ voiceClient, isConnected, onClose }) {
         }),
         React.createElement('span', null, isConnected ? 'Connected to Agent' : 'Disconnected')
       ),
-      // Close button
       React.createElement('button', {
         onClick: handleClose,
         'aria-label': 'Close chat and disconnect',
@@ -188,7 +230,9 @@ function ChatWindow({ voiceClient, isConnected, onClose }) {
         display: 'flex',
         flexDirection: 'column',
         gap: '16px',
-        scrollBehavior: 'smooth'
+        scrollBehavior: 'smooth',
+        // Performance optimization
+        willChange: 'scroll-position'
       }
     },
       messages.length === 0 ?
@@ -200,13 +244,15 @@ function ChatWindow({ voiceClient, isConnected, onClose }) {
             fontSize: '14px'
           }
         }, 'Start speaking to see the conversation...') :
-        messages.map((msg, idx) =>
+        messages.map((msg) =>
           React.createElement('div', {
             key: msg.id,
             className: 'chat-message',
             style: {
               display: 'flex',
-              justifyContent: msg.isUser ? 'flex-end' : 'flex-start'
+              justifyContent: msg.isUser ? 'flex-end' : 'flex-start',
+              // Performance optimization
+              willChange: 'transform'
             }
           },
             React.createElement('div', {
@@ -225,10 +271,11 @@ function ChatWindow({ voiceClient, isConnected, onClose }) {
                 boxShadow: msg.isUser
                   ? '0 4px 12px rgba(102, 126, 234, 0.3)'
                   : '0 4px 12px rgba(0, 0, 0, 0.2)',
-                transition: 'all 0.2s ease'
+                transition: 'opacity 0.2s ease',
+                opacity: msg.isFinal ? 1 : 0.7
               }
             },
-              React.createElement('div', null, msg.text),
+              React.createElement('div', null, msg.text + (msg.isFinal ? '' : '...')),
               React.createElement('div', {
                 style: {
                   fontSize: '11px',

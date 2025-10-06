@@ -10,18 +10,25 @@ class LiveKitVoiceClient {
   constructor() {
     this.room = null;
     this.isConnected = false;
+    this.isConnecting = false;
     this.token = null;
     this.roomName = null;
     this.LiveKit = null;
+    this.onStageChange = null; // Callback for stage updates
+    this.onDisconnect = null; // Callback for disconnect events
   }
 
   /**
    * Connect to LiveKit room with voice agent
    */
   async connect() {
-    if (this.isConnected) {
+    // Prevent multiple simultaneous connections
+    if (this.isConnected || this.isConnecting) {
+      console.warn('Already connected or connecting');
       return;
     }
+
+    this.isConnecting = true;
 
     try {
       // Check LiveKit SDK
@@ -30,7 +37,8 @@ class LiveKitVoiceClient {
         throw new Error('LiveKit client SDK not loaded. Please refresh the page.');
       }
 
-      // Get access token from backend
+      // Stage 1: Getting token
+      if (this.onStageChange) this.onStageChange('Getting token...');
       const response = await fetch('/api/livekit/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -49,7 +57,8 @@ class LiveKitVoiceClient {
       this.roomName = data.roomName;
       const livekitUrl = data.url;
 
-      // Create LiveKit room with optimized settings for voice
+      // Stage 2: Creating room
+      if (this.onStageChange) this.onStageChange('Creating room...');
       this.room = new this.LiveKit.Room({
         adaptiveStream: true,
         dynacast: true,
@@ -63,17 +72,34 @@ class LiveKitVoiceClient {
       // Set up event handlers BEFORE connecting
       this.setupEventHandlers();
 
-      // Connect to room
+      // Stage 3: Connecting to server
+      if (this.onStageChange) this.onStageChange('Connecting to server...');
       await this.room.connect(livekitUrl, this.token);
 
-      // Enable microphone
+      // Stage 4: Enabling microphone
+      if (this.onStageChange) this.onStageChange('Enabling microphone...');
       await this.room.localParticipant.setMicrophoneEnabled(true);
 
+      // Stage 5: Waiting for agent
+      if (this.onStageChange) this.onStageChange('Waiting for agent...');
       this.isConnected = true;
+      this.isConnecting = false;
 
     } catch (error) {
       console.error('Connection error:', error);
       this.isConnected = false;
+      this.isConnecting = false;
+
+      // Clean up partial connection
+      if (this.room) {
+        try {
+          await this.room.disconnect();
+        } catch (e) {
+          console.error('Error cleaning up after failed connection:', e);
+        }
+        this.room = null;
+      }
+
       throw error;
     }
   }
@@ -112,9 +138,15 @@ class LiveKitVoiceClient {
       // State changed - silent handling
     });
 
-    // Disconnected
+    // Disconnected (by server or error)
     this.room.on(this.LiveKit.RoomEvent.Disconnected, () => {
       this.isConnected = false;
+      this.isConnecting = false;
+
+      // Notify UI that we've been disconnected
+      if (this.onDisconnect) {
+        this.onDisconnect();
+      }
     });
 
     // Data received (for agent messages)
@@ -124,17 +156,37 @@ class LiveKitVoiceClient {
   }
 
   /**
-   * Disconnect from room
+   * Disconnect from room and clean up resources
    */
   async disconnect() {
-    if (!this.room) return;
+    if (!this.room) {
+      this.isConnected = false;
+      this.isConnecting = false;
+      return;
+    }
 
     try {
+      // Remove all audio elements created by this client
+      const audioElements = document.querySelectorAll('audio');
+      audioElements.forEach(el => {
+        if (el.srcObject) {
+          el.pause();
+          el.srcObject = null;
+          el.remove();
+        }
+      });
+
+      // Disconnect from room
       await this.room.disconnect();
       this.room = null;
       this.isConnected = false;
+      this.isConnecting = false;
     } catch (error) {
       console.error('Error disconnecting:', error);
+      // Force cleanup even if disconnect fails
+      this.room = null;
+      this.isConnected = false;
+      this.isConnecting = false;
     }
   }
 

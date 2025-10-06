@@ -485,7 +485,7 @@ body::before {
 }
 
 /* Copy notification */
-.copy-notification {
+.copy-notification, .connection-status {
   position: absolute;
   top: -50px;
   left: 50%;
@@ -505,6 +505,36 @@ body::before {
 @keyframes slideDown {
   from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Spinner for loading state */
+.spinner-mini {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.skate-btn:disabled {
+  cursor: wait;
+  opacity: 0.9;
+}
+
+.connection-status {
+  background: linear-gradient(135deg, #3b82f6, #60A5FA);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
 }
 
 /* ============================================

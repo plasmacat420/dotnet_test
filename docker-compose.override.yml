@@ -39,9 +39,9 @@ services:
       # Enable playground mode (optional)
       # - PLAYGROUND_MODE=true
 
-    # volumes:
-      # Mount source code for live updates (DISABLED for initial test)
-      # - ./voice-agent-py:/app:ro
+    volumes:
+      # Mount source code for live updates
+      - ./voice-agent-py:/app:ro
 
     # Keep stdin open for debugging
     stdin_open: true

@@ -17,7 +17,8 @@ class ConversationManager:
         self.instructions = instructions
         self.logger = setup_logger(__name__)
         self.session_manager = SessionManager(self)
-        self.transcript_manager = TranscriptManager()
+        # Use Docker service name 'api' with internal port 8080
+        self.transcript_manager = TranscriptManager(api_base_url="http://api:8080")
         self.participant: Optional[rtc.Participant] = None
         self.log_prefix = f"[{ctx.room.name}/AgentJob-{ctx.job.id[:7]}]"
         self.is_connected = False
@@ -54,24 +55,13 @@ class ConversationManager:
             raise
 
     def _on_transcript_received(self, transcript) -> None:
-        """Handle received transcript"""
+        """Handle received transcript for backend logging"""
         text = transcript.transcript.strip()
         timestamp = datetime.now().isoformat()
         self.logger.debug(f"{self.log_prefix} User: {text}")
         self.user_transcripts.append({"text": text, "timestamp": timestamp})
 
-        # Send transcript to frontend via data channel
-        if self.ctx.room:
-            import json
-            data = json.dumps({
-                "type": "transcript",
-                "text": text,
-                "role": "user",
-                "timestamp": timestamp
-            })
-            asyncio.create_task(
-                self.ctx.room.local_participant.publish_data(data.encode('utf-8'))
-            )
+        # User transcripts are automatically sent by VoiceAgent.on_user_turn_completed
 
     async def start_conversation(self) -> None:
         """Start the conversation with initial greeting"""

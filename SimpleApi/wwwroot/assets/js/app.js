@@ -287,6 +287,8 @@ function ContactCard() {
   const queueRef = useRef([]); // Queue for speech synthesis
   const voiceClientRef = useRef(null); // LiveKit voice AI client
   const [isAIConnected, setIsAIConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionStage, setConnectionStage] = useState('');
 
   // Typewriter effect
   useEffect(() => {
@@ -356,27 +358,55 @@ function ContactCard() {
     try {
       if (isAIConnected) {
         // Disconnect
+        setConnectionStage('Disconnecting...');
         if (voiceClientRef.current) {
           await voiceClientRef.current.disconnect();
           voiceClientRef.current = null;
         }
         setIsAIConnected(false);
+        setIsConnecting(false);
+        setConnectionStage('');
       } else {
-        // Connect
+        // Connect with stage tracking
+        setIsConnecting(true);
+        setConnectionStage('Connecting...');
+
         const client = new window.LiveKitVoiceClient();
+
+        // Set up stage callbacks
+        client.onStageChange = (stage) => {
+          setConnectionStage(stage);
+        };
+
+        // Handle unexpected disconnections
+        client.onDisconnect = () => {
+          console.log('Voice agent disconnected');
+          setIsAIConnected(false);
+          setIsConnecting(false);
+          setConnectionStage('');
+          voiceClientRef.current = null;
+        };
+
         client.connect().then(() => {
           voiceClientRef.current = client;
           setIsAIConnected(true);
+          setIsConnecting(false);
+          setConnectionStage('Connected');
+          setTimeout(() => setConnectionStage(''), 2000);
         }).catch((error) => {
           console.error('Failed to connect to voice agent:', error);
           alert('Could not connect to voice agent. Please try again.');
           setIsAIConnected(false);
+          setIsConnecting(false);
+          setConnectionStage('');
         });
       }
     } catch (error) {
       console.error('Voice agent error:', error);
       alert('Could not connect to voice agent. Please try again.');
       setIsAIConnected(false);
+      setIsConnecting(false);
+      setConnectionStage('');
     }
   };
 
@@ -443,6 +473,12 @@ function ContactCard() {
         'aria-live': 'polite'
       }, '✓ Email Copied!'),
 
+      connectionStage && React.createElement('div', {
+        className: 'connection-status',
+        role: 'status',
+        'aria-live': 'polite'
+      }, connectionStage),
+
       React.createElement('a', {
         className: "skate-deck",
         href: `mailto:${config.contact.email}`,
@@ -467,11 +503,16 @@ function ContactCard() {
           }, React.createElement(Icon, { name: social }))
         ),
         React.createElement('button', {
-          className: isAIConnected ? "skate-btn active-ai" : "skate-btn",
-          'aria-label': isAIConnected ? "Disconnect from AI voice assistant" : "Connect to AI voice assistant",
+          className: isAIConnected ? "skate-btn active-ai" : isConnecting ? "skate-btn connecting" : "skate-btn",
+          'aria-label': isAIConnected ? "Disconnect from AI voice assistant" : isConnecting ? "Connecting to voice assistant..." : "Connect to AI voice assistant",
           onClick: e => { e.preventDefault(); toggleAIVoice(); },
-          style: isAIConnected ? { backgroundColor: '#10b981', color: 'white' } : {}
-        }, React.createElement(Icon, { name: "speak" }))
+          disabled: isConnecting,
+          style: isAIConnected ? { backgroundColor: '#10b981', color: 'white' } : isConnecting ? { backgroundColor: '#3b82f6', color: 'white', cursor: 'wait' } : {}
+        },
+          isConnecting
+            ? React.createElement('span', { className: 'spinner-mini' })
+            : React.createElement(Icon, { name: "speak" })
+        )
       )
     ),
 
