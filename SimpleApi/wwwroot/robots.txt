@@ -1,9 +1,13 @@
 # robots.txt for prepreater.com
+# Allow all search engines to index the site
+
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /swagger/
 
-# Sitemap
+# Sitemap location
 Sitemap: https://prepreater.com/sitemap.xml
 
-# Crawl-delay for polite bots
+# Crawl delay (optional - be nice to servers)
 Crawl-delay: 1

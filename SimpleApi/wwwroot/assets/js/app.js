@@ -289,6 +289,7 @@ function ContactCard() {
   const [isAIConnected, setIsAIConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionStage, setConnectionStage] = useState('');
+  const [connectionError, setConnectionError] = useState('');
 
   // Typewriter effect
   useEffect(() => {
@@ -351,7 +352,7 @@ function ContactCard() {
   // LiveKit Voice Agent - Connect/Disconnect
   const toggleAIVoice = async () => {
     if (!window.LiveKitVoiceClient) {
-      alert('Voice agent not available. Please refresh the page.');
+      setConnectionError('Voice agent not available. Please refresh the page.');
       return;
     }
 
@@ -366,10 +367,12 @@ function ContactCard() {
         setIsAIConnected(false);
         setIsConnecting(false);
         setConnectionStage('');
+        setConnectionError('');
       } else {
         // Connect with stage tracking
         setIsConnecting(true);
-        setConnectionStage('Connecting...');
+        setConnectionStage('Initializing...');
+        setConnectionError('');
 
         const client = new window.LiveKitVoiceClient();
 
@@ -384,18 +387,30 @@ function ContactCard() {
           setIsAIConnected(false);
           setIsConnecting(false);
           setConnectionStage('');
+          setConnectionError('');
           voiceClientRef.current = null;
+        };
+
+        // Handle errors
+        client.onError = (errorMsg) => {
+          console.error('Voice agent error:', errorMsg);
+          setConnectionError(errorMsg);
+          setIsAIConnected(false);
+          setIsConnecting(false);
+          setConnectionStage('');
         };
 
         client.connect().then(() => {
           voiceClientRef.current = client;
           setIsAIConnected(true);
           setIsConnecting(false);
-          setConnectionStage('Connected');
-          setTimeout(() => setConnectionStage(''), 2000);
+          setConnectionStage('Connected! Start speaking...');
+          setConnectionError('');
+          setTimeout(() => setConnectionStage(''), 3000);
         }).catch((error) => {
           console.error('Failed to connect to voice agent:', error);
-          alert('Could not connect to voice agent. Please try again.');
+          const errorMsg = error.message || 'Could not connect to voice agent. Please try again.';
+          setConnectionError(errorMsg);
           setIsAIConnected(false);
           setIsConnecting(false);
           setConnectionStage('');
@@ -403,7 +418,7 @@ function ContactCard() {
       }
     } catch (error) {
       console.error('Voice agent error:', error);
-      alert('Could not connect to voice agent. Please try again.');
+      setConnectionError('Could not connect to voice agent. Please try again.');
       setIsAIConnected(false);
       setIsConnecting(false);
       setConnectionStage('');
@@ -474,10 +489,26 @@ function ContactCard() {
       }, '✓ Email Copied!'),
 
       connectionStage && React.createElement('div', {
-        className: 'connection-status',
+        className: isConnecting ? 'connection-status loading' : 'connection-status success',
         role: 'status',
         'aria-live': 'polite'
-      }, connectionStage),
+      },
+        isConnecting && React.createElement('div', { className: 'status-spinner' }),
+        React.createElement('span', null, connectionStage)
+      ),
+
+      connectionError && React.createElement('div', {
+        className: 'connection-status error',
+        role: 'alert',
+        'aria-live': 'assertive'
+      },
+        React.createElement('span', null, '⚠ ' + connectionError),
+        React.createElement('button', {
+          className: 'error-dismiss',
+          onClick: () => setConnectionError(''),
+          'aria-label': 'Dismiss error'
+        }, '✕')
+      ),
 
       React.createElement('a', {
         className: "skate-deck",

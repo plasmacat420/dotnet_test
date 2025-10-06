@@ -2,9 +2,33 @@
 // LIVEKIT VOICE CLIENT
 // Connects to LiveKit room with voice agent
 // ============================================
+//
+// IMPORTANT: Agent Wake-up Flow
+// ==============================
+// LiveKit agents sleep when inactive to save resources.
+// This client handles the wake-up sequence:
+//
+// 1. Get access token from backend
+// 2. Create LiveKit room with optimized audio settings
+// 3. Connect to LiveKit server
+// 4. Enable microphone (triggers agent dispatch)
+// 5. Wait for agent to connect (with timeout)
+// 6. If timeout, retry with exponential backoff
+//
+// Retry Strategy:
+// - 3 attempts maximum
+// - Delays: 2s, 4s, 8s (exponential backoff)
+// - Clear error messages to user
+//
+// Security:
+// - Input sanitization on backend
+// - Rate limiting per IP
+// - Secure token generation with 6-hour expiry
+//
+// ============================================
 
 /**
- * LiveKitVoiceClient - Manages connection to LiveKit voice agent
+ * LiveKitVoiceClient - Manages connection to LiveKit voice agent with retry logic
  */
 class LiveKitVoiceClient {
   constructor() {
@@ -16,10 +40,14 @@ class LiveKitVoiceClient {
     this.LiveKit = null;
     this.onStageChange = null; // Callback for stage updates
     this.onDisconnect = null; // Callback for disconnect events
+    this.onError = null; // Callback for error events
+    this.maxRetries = 3;
+    this.retryCount = 0;
+    this.agentWakeTimeout = 15000; // 15 seconds to wait for agent
   }
 
   /**
-   * Connect to LiveKit room with voice agent
+   * Connect to LiveKit room with voice agent (with retry logic)
    */
   async connect() {
     // Prevent multiple simultaneous connections
@@ -29,7 +57,40 @@ class LiveKitVoiceClient {
     }
 
     this.isConnecting = true;
+    this.retryCount = 0;
 
+    while (this.retryCount <= this.maxRetries) {
+      try {
+        await this._attemptConnection();
+        return; // Success
+      } catch (error) {
+        console.error(`Connection attempt ${this.retryCount + 1} failed:`, error);
+
+        if (this.retryCount < this.maxRetries) {
+          // Exponential backoff: 2s, 4s, 8s
+          const delay = Math.pow(2, this.retryCount) * 2000;
+          if (this.onStageChange) {
+            this.onStageChange(`Retrying in ${delay / 1000}s... (${this.retryCount + 1}/${this.maxRetries})`);
+          }
+          await this._sleep(delay);
+          this.retryCount++;
+        } else {
+          // Max retries exceeded
+          this.isConnected = false;
+          this.isConnecting = false;
+          if (this.onError) {
+            this.onError('Failed to connect after multiple attempts. The agent may be sleeping or unavailable.');
+          }
+          throw error;
+        }
+      }
+    }
+  }
+
+  /**
+   * Attempt a single connection to LiveKit
+   */
+  async _attemptConnection() {
     try {
       // Check LiveKit SDK
       this.LiveKit = window.LivekitClient || window.LiveKit;
@@ -38,7 +99,7 @@ class LiveKitVoiceClient {
       }
 
       // Stage 1: Getting token
-      if (this.onStageChange) this.onStageChange('Getting token...');
+      if (this.onStageChange) this.onStageChange('Getting access token...');
       const response = await fetch('/api/livekit/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -80,10 +141,21 @@ class LiveKitVoiceClient {
       if (this.onStageChange) this.onStageChange('Enabling microphone...');
       await this.room.localParticipant.setMicrophoneEnabled(true);
 
-      // Stage 5: Waiting for agent
-      if (this.onStageChange) this.onStageChange('Waiting for agent...');
+      // Stage 5: Waking up agent (critical step!)
+      if (this.onStageChange) this.onStageChange('Waking up voice agent...');
+
+      // Wait for agent to connect or timeout
+      const agentConnected = await this._waitForAgent();
+
+      if (!agentConnected) {
+        throw new Error('Agent did not wake up in time');
+      }
+
+      // Stage 6: Success
+      if (this.onStageChange) this.onStageChange('Connected! Start speaking...');
       this.isConnected = true;
       this.isConnecting = false;
+      this.retryCount = 0; // Reset retry count on success
 
     } catch (error) {
       console.error('Connection error:', error);
@@ -102,6 +174,47 @@ class LiveKitVoiceClient {
 
       throw error;
     }
+  }
+
+  /**
+   * Wait for agent to connect to the room
+   */
+  async _waitForAgent() {
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        this.room.off(this.LiveKit.RoomEvent.ParticipantConnected, onAgentJoin);
+        resolve(false); // Timeout
+      }, this.agentWakeTimeout);
+
+      const onAgentJoin = (participant) => {
+        // Check if it's the agent (not the local user)
+        if (participant.identity !== this.room.localParticipant.identity) {
+          clearTimeout(timeout);
+          this.room.off(this.LiveKit.RoomEvent.ParticipantConnected, onAgentJoin);
+          console.log('Agent connected:', participant.identity);
+          resolve(true); // Agent connected
+        }
+      };
+
+      // Check if agent already in room
+      const existingParticipants = Array.from(this.room.remoteParticipants.values());
+      if (existingParticipants.length > 0) {
+        clearTimeout(timeout);
+        console.log('Agent already in room');
+        resolve(true);
+        return;
+      }
+
+      // Listen for agent joining
+      this.room.on(this.LiveKit.RoomEvent.ParticipantConnected, onAgentJoin);
+    });
+  }
+
+  /**
+   * Sleep utility for retry delays
+   */
+  _sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**

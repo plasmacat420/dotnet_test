@@ -44,12 +44,37 @@
 
   <!-- Performance optimizations -->
   <link rel="preconnect" href="https://unpkg.com" crossorigin />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link rel="dns-prefetch" href="https://unpkg.com" />
-  <link rel="preload" href="assets/css/style.css?v=2.0" as="style" />
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+  <link rel="preload" href="assets/css/style.css?v=2.1" as="style" />
   <link rel="preload" href="assets/images/me.jpg" as="image" />
   <link rel="preload" href="https://unpkg.com/react@18/umd/react.production.min.js" as="script" crossorigin />
   <link rel="preload" href="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" as="script" crossorigin />
-  <link rel="stylesheet" href="assets/css/style.css?v=2.0" />
+  <link rel="stylesheet" href="assets/css/style.css?v=2.1" />
+
+  <!-- Structured Data (Schema.org) for SEO -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Faiz Shaikh",
+    "jobTitle": "UI Developer & Competitive Coder",
+    "description": "UI Developer & Competitive Coder specializing in React, TypeScript, and .NET. Building elegant, fast interfaces with modern web technologies.",
+    "url": "https://prepreater.com",
+    "email": "faiz.corsair@gmail.com",
+    "sameAs": [
+      "https://linkedin.com/in/prepreater",
+      "https://github.com/plasmacat420",
+      "https://leetcode.com/faiz0308"
+    ],
+    "knowsAbout": ["React", "TypeScript", ".NET", "Web Development", "Competitive Programming", "UI/UX Design"],
+    "worksFor": {
+      "@type": "Organization",
+      "name": "Prepreater & Co."
+    }
+  }
+  </script>
 </head>
 
 <body>
@@ -96,12 +121,12 @@
   <script src="assets/js/config.js?v=1.0"></script>
 
   <!-- LiveKit Voice Client -->
-  <script src="assets/js/livekit-voice.js?v=1.2"></script>
+  <script src="assets/js/livekit-voice.js?v=2.0"></script>
 
   <!-- Chat Component -->
-  <script src="assets/js/chat.js?v=1.0"></script>
+  <script src="assets/js/chat.js?v=1.1"></script>
 
   <!-- App -->
-  <script src="assets/js/app.js?v=3.1"></script>
+  <script src="assets/js/app.js?v=3.2"></script>
 </body>
 </html>

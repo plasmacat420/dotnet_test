@@ -94,5 +94,5 @@ TERTIARY_LANGUAGE = "mr"  # Marathi
 
 # TTS Configuration
 TTS_PROVIDER = os.getenv("TTS_PROVIDER", "elevenlabs")  # elevenlabs, openai, azure, google, sarvam
-TTS_VOICE = os.getenv("TTS_VOICE", "Rachel")  # Voice name/ID
-TTS_MODEL = os.getenv("TTS_MODEL", "eleven_turbo_v2")  # Model (for ElevenLabs)
+TTS_VOICE = os.getenv("TTS_VOICE", "Jessica")  # Voice name/ID
+TTS_MODEL = os.getenv("TTS_MODEL", "eleven_multilingual_v2")  # Model (for ElevenLabs)

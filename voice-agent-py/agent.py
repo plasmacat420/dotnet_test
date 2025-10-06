@@ -122,7 +122,7 @@ def prewarm_fnc(proc: agents.JobProcess):
             )
         elif config.TTS_PROVIDER == "sarvam":
             proc.userdata["tts"] = sarvam.TTS(
-                target_language_code="mr-IN",
+                target_language_code="hi-IN",
                 speaker=config.TTS_VOICE
             )
         else:

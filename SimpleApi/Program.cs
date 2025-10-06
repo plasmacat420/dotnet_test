@@ -102,6 +102,38 @@ app.UseMiddleware<ErrorHandlingMiddleware>();
 // Logs details about each request (method, path, duration, status)
 app.UseMiddleware<RequestLoggingMiddleware>();
 
+// [2.5] Security Headers
+// Add security headers to protect against common web vulnerabilities
+app.Use(async (context, next) =>
+{
+    // Content Security Policy - Prevent XSS attacks
+    context.Response.Headers["Content-Security-Policy"] =
+        "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data: https:; " +
+        "connect-src 'self' wss: https:; " +
+        "font-src 'self' data:; " +
+        "media-src 'self';";
+
+    // X-Content-Type-Options - Prevent MIME type sniffing
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+
+    // X-Frame-Options - Prevent clickjacking
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+
+    // X-XSS-Protection - Enable browser XSS filter
+    context.Response.Headers["X-XSS-Protection"] = "1; mode=block";
+
+    // Referrer-Policy - Control referrer information
+    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+
+    // Permissions-Policy - Control browser features
+    context.Response.Headers["Permissions-Policy"] = "geolocation=(), microphone=(self), camera=()";
+
+    await next();
+});
+
 // [3] Swagger UI (Development Only)
 // Interactive API documentation at /swagger
 if (app.Environment.IsDevelopment())

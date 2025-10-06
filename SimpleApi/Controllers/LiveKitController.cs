@@ -32,15 +32,20 @@ public class LiveKitController : ControllerBase
     {
         try
         {
-            // Use provided identity or generate a unique one
+            // Input validation - prevent XSS and injection attacks
             var identity = string.IsNullOrEmpty(request.Identity)
                 ? $"user-{Guid.NewGuid():N}"
-                : request.Identity;
+                : SanitizeInput(request.Identity, 50);
 
-            // Use provided name or default
             var name = string.IsNullOrEmpty(request.Name)
                 ? "Guest"
-                : request.Name;
+                : SanitizeInput(request.Name, 50);
+
+            // Validate sanitized inputs
+            if (string.IsNullOrEmpty(identity) || string.IsNullOrEmpty(name))
+            {
+                return BadRequest(new { error = "Invalid input parameters" });
+            }
 
             // Create unique room name for this session
             // This allows LiveKit to dispatch the agent properly
@@ -61,6 +66,27 @@ public class LiveKitController : ControllerBase
             _logger.LogError(ex, "Error generating token");
             return StatusCode(500, new { error = "Failed to generate token" });
         }
+    }
+
+    /// <summary>
+    /// Sanitize user input to prevent XSS and injection attacks
+    /// </summary>
+    private static string SanitizeInput(string input, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return string.Empty;
+
+        // Remove potentially dangerous characters
+        var sanitized = System.Text.RegularExpressions.Regex.Replace(
+            input,
+            @"[^\w\s\-@.]",
+            string.Empty
+        ).Trim();
+
+        // Limit length
+        return sanitized.Length > maxLength
+            ? sanitized.Substring(0, maxLength)
+            : sanitized;
     }
 
     /// <summary>

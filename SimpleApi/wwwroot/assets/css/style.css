@@ -485,7 +485,7 @@ body::before {
 }
 
 /* Copy notification */
-.copy-notification, .connection-status {
+.copy-notification {
   position: absolute;
   top: -50px;
   left: 50%;
@@ -502,12 +502,89 @@ body::before {
   animation: slideDown 0.3s ease;
 }
 
+/* Connection status - Modern glassy design */
+.connection-status {
+  position: absolute;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  border-radius: 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  z-index: 100;
+  animation: slideDown 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+/* Loading state - Blue gradient */
+.connection-status.loading {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(96, 165, 250, 0.2));
+  border-color: rgba(96, 165, 250, 0.3);
+  color: #60A5FA;
+}
+
+/* Success state - Green gradient */
+.connection-status.success {
+  background: linear-gradient(135deg, rgba(110, 231, 183, 0.25), rgba(94, 234, 212, 0.2));
+  border-color: rgba(110, 231, 183, 0.3);
+  color: #6EE7B7;
+}
+
+/* Error state - Red gradient */
+.connection-status.error {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(248, 113, 113, 0.2));
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  max-width: 400px;
+  white-space: normal;
+  text-align: left;
+  justify-content: space-between;
+}
+
+/* Status spinner for loading */
+.status-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  border-radius: 50%;
+  border-top-color: #60A5FA;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+/* Error dismiss button */
+.error-dismiss {
+  background: transparent;
+  border: none;
+  color: #fca5a5;
+  cursor: pointer;
+  padding: 4px 8px;
+  margin-left: 8px;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.error-dismiss:hover {
+  background: rgba(239, 68, 68, 0.2);
+  transform: scale(1.1);
+}
+
 @keyframes slideDown {
   from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
-/* Spinner for loading state */
+/* Spinner for button loading state */
 .spinner-mini {
   display: inline-block;
   width: 20px;
@@ -525,16 +602,6 @@ body::before {
 .skate-btn:disabled {
   cursor: wait;
   opacity: 0.9;
-}
-
-.connection-status {
-  background: linear-gradient(135deg, #3b82f6, #60A5FA);
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.8; }
 }
 
 /* ============================================
@@ -941,6 +1008,24 @@ body::before {
   .center-wrap {
     padding: 36px 24px 150px;
   }
+
+  /* Tablet: Better split-view */
+  .contact-container.shifted {
+    left: 0;
+    right: 50%;
+    justify-content: center;
+  }
+
+  .chat-container {
+    left: 50%;
+    right: 0;
+    padding: 32px 24px 140px;
+  }
+
+  .chat-container.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 /* Mobile - Compact & efficient */
@@ -964,6 +1049,62 @@ body::before {
   .tentacle-3 { display: none; }
   .board { padding: 28px 20px 54px; }
   .skate-deck { font-size: 0.85rem; padding: 14px 20px; }
+
+  /* Mobile: Stack chat below contact card */
+  .contact-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: auto;
+    height: auto;
+    padding: 20px;
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* When chat is active, minimize contact card */
+  .contact-container.shifted {
+    transform: scale(0.7) translateY(-10px);
+    opacity: 0.4;
+    pointer-events: none;
+    left: 0;
+    right: 0;
+    justify-content: center;
+  }
+
+  /* Chat takes full screen on mobile */
+  .chat-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 20px;
+    padding-top: 200px;
+    transition: all 0.5s ease-in-out;
+  }
+
+  .chat-container.active {
+    padding-top: 200px;
+  }
+
+  /* Smaller board on mobile when minimized */
+  .contact-container.shifted .board {
+    transform: scale(0.9);
+  }
+
+  /* Connection status positioning for mobile */
+  .connection-status {
+    top: -50px;
+    max-width: 90vw;
+    font-size: 0.85rem;
+    padding: 10px 16px;
+  }
+
+  /* Brand footer smaller on mobile */
+  .brand-footer {
+    height: 100px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

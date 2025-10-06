@@ -81,7 +81,10 @@ function ChatWindow({ voiceClient, isConnected, onClose }) {
 
   // Listen for LiveKit track transcriptions
   useEffect(() => {
-    if (!voiceClient || !voiceClient.room) return;
+    if (!voiceClient || !voiceClient.room) {
+      console.log('[Chat] No voice client or room available');
+      return;
+    }
 
     const room = voiceClient.room;
     const LiveKit = window.LivekitClient || window.LiveKit;
