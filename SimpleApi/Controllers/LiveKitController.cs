@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using SimpleApi.Services;
-using System.Net.Http.Json;
-using System.Text;
 
 namespace SimpleApi.Controllers;
 
@@ -15,18 +13,15 @@ public class LiveKitController : ControllerBase
     private readonly LiveKitTokenService _tokenService;
     private readonly ILogger<LiveKitController> _logger;
     private readonly Configuration.LiveKitOptions _livekitOptions;
-    private readonly IHttpClientFactory _httpClientFactory;
 
     public LiveKitController(
         LiveKitTokenService tokenService,
         ILogger<LiveKitController> logger,
-        Microsoft.Extensions.Options.IOptions<Configuration.LiveKitOptions> livekitOptions,
-        IHttpClientFactory httpClientFactory)
+        Microsoft.Extensions.Options.IOptions<Configuration.LiveKitOptions> livekitOptions)
     {
         _tokenService = tokenService;
         _logger = logger;
         _livekitOptions = livekitOptions.Value;
-        _httpClientFactory = httpClientFactory;
     }
 
     /// <summary>
@@ -53,19 +48,8 @@ public class LiveKitController : ControllerBase
             }
 
             // Create unique room name for this session
+            // Agent will auto-dispatch to any new room (playground mode)
             var roomName = $"voice-session-{Guid.NewGuid():N}".Substring(0, 30);
-
-            // Dispatch agent to room immediately
-            try
-            {
-                await DispatchAgentToRoom(roomName);
-                _logger.LogInformation($"Dispatched agent to room: {roomName}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning($"Agent dispatch failed (will retry on connection): {ex.Message}");
-                // Continue even if dispatch fails - agent might auto-join
-            }
 
             var token = _tokenService.GenerateToken(roomName, identity, name);
 
@@ -82,41 +66,6 @@ public class LiveKitController : ControllerBase
             _logger.LogError(ex, "Error generating token");
             return StatusCode(500, new { error = "Failed to generate token" });
         }
-    }
-
-    /// <summary>
-    /// Dispatch agent to a specific room using LiveKit Agent Dispatch API
-    /// </summary>
-    private async Task DispatchAgentToRoom(string roomName)
-    {
-        var httpClient = _httpClientFactory.CreateClient();
-
-        // LiveKit Agent Dispatch API endpoint
-        var apiUrl = _livekitOptions.Url.Replace("wss://", "https://") + "/twirp/livekit.AgentDispatchService/CreateDispatch";
-
-        // Create dispatch request payload
-        var dispatchRequest = new
-        {
-            room = roomName,
-            agent_name = "" // Empty for any agent (playground mode)
-        };
-
-        // Create HTTP request with LiveKit authentication
-        var request = new HttpRequestMessage(HttpMethod.Post, apiUrl);
-        request.Headers.Add("Authorization", $"Bearer {GenerateServerToken()}");
-        request.Content = JsonContent.Create(dispatchRequest);
-
-        var response = await httpClient.SendAsync(request);
-        response.EnsureSuccessStatusCode();
-    }
-
-    /// <summary>
-    /// Generate a server token for LiveKit API authentication
-    /// </summary>
-    private string GenerateServerToken()
-    {
-        // Use the token service to generate a server-level token
-        return _tokenService.GenerateToken("", "server", "server");
     }
 
     /// <summary>

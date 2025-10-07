@@ -205,18 +205,24 @@ if __name__ == "__main__":
         configure_logging()
         validate_environment()
 
-        agent_name = config.AGENT_NAME if not config.PLAYGROUND_MODE else ""
         logger.info(f"Starting agent worker... Playground mode: {config.PLAYGROUND_MODE}")
 
-        agents.cli.run_app(
-            agents.WorkerOptions(
-                entrypoint_fnc=entrypoint,
-                agent_name=agent_name,
-                port=config.AGENT_PORT,
-                request_fnc=request_fnc,
-                prewarm_fnc=prewarm_fnc
-            )
-        )
+        # Build WorkerOptions - only set agent_name if NOT in playground mode
+        worker_options = {
+            "entrypoint_fnc": entrypoint,
+            "port": config.AGENT_PORT,
+            "request_fnc": request_fnc,
+            "prewarm_fnc": prewarm_fnc
+        }
+
+        # Only add agent_name if not in playground mode (enables automatic dispatch)
+        if not config.PLAYGROUND_MODE:
+            worker_options["agent_name"] = config.AGENT_NAME
+            logger.info(f"Agent registered with name: {config.AGENT_NAME}")
+        else:
+            logger.info("Playground mode: Using automatic dispatch (no agent_name)")
+
+        agents.cli.run_app(agents.WorkerOptions(**worker_options))
 
     except Exception as e:
         logger.error(f"Failed to start agent: {e}", exc_info=True)
