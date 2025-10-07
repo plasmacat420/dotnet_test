@@ -90,17 +90,11 @@ async def entrypoint(ctx: JobContext):
 #     )
 
 async def request_fnc(req: agents.JobRequest):
-      """Accept job requests"""
-      if config.PLAYGROUND_MODE:
-          # Playground mode: accept any job
-          await req.accept()
-      else:
-          # Production mode: only accept jobs for this specific agent
-          await req.accept(
-              name=config.AGENT_NAME,
-              identity=config.AGENT_NAME,
-              attributes={"language": "hi-en"}
-          )
+      """Accept ALL job requests unconditionally"""
+      # Always accept jobs - no conditions
+      # This ensures the agent wakes up for any room
+      logger.info(f"Received job request for room: {req.room.name}")
+      await req.accept()
 
 
 def prewarm_fnc(proc: agents.JobProcess):
