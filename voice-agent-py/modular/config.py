@@ -1,8 +1,21 @@
 # modular/config.py
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv("../../.env")
+# Load environment variables from multiple possible locations
+# Priority: root .env > voice-agent-py/.secrets > environment variables
+root_env = Path(__file__).parent.parent.parent / ".env"
+secrets_file = Path(__file__).parent.parent / ".secrets"
+
+if root_env.exists():
+    load_dotenv(root_env)
+    print(f"Loaded environment from: {root_env}")
+elif secrets_file.exists():
+    load_dotenv(secrets_file)
+    print(f"Loaded environment from: {secrets_file}")
+else:
+    print("No .env or .secrets file found, using system environment variables")
 
 # Agent Configuration
 AGENT_NAME = "hindi-voice-agent"
