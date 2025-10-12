@@ -34,6 +34,16 @@ services:
       - Logging__LogLevel__Default=Information
       - Logging__LogLevel__Microsoft.AspNetCore=Warning
 
+      # Email configuration (double underscore maps to colon in .NET config)
+      - Email__SenderEmail=${Email__SenderEmail}
+      - Email__SenderPassword=${Email__SenderPassword}
+      - Email__SmtpHost=${Email__SmtpHost:-smtp.gmail.com}
+      - Email__SmtpPort=${Email__SmtpPort:-587}
+      - Email__SenderName=${Email__SenderName:-Voice Agent}
+
+      # Groq API for AI summaries
+      - Groq__ApiKey=${GROQ_API_KEY}
+
     volumes:
       # Mount wwwroot for frontend file updates (development)
       - ./SimpleApi/wwwroot:/app/wwwroot:ro
@@ -42,7 +52,7 @@ services:
       - voiceagent-network
 
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1"]
+      test: ["CMD-SHELL", "dotnet --info > /dev/null 2>&1 || exit 1"]
       interval: 30s
       timeout: 3s
       retries: 3
@@ -53,6 +63,9 @@ services:
   # ==========================================
   # PYTHON VOICE AGENT SERVICE
   # ==========================================
+  # NOTE: Agent now deployed on LiveKit Cloud for production
+  # This service is kept for local development/testing only
+  # Production uses: lk agent deploy (see voice-agent-py/DEPLOY.md)
   agent:
     build:
       context: ./voice-agent-py

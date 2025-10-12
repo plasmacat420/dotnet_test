@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Read(//c/Users/faiz0/Downloads/codes/voicedemo_agent/**)"
+      "Read(//c/Users/faiz0/Downloads/codes/voicedemo_agent/**)",
+      "Read(//c/Users/faiz0/Downloads/codes/dotnet_test/**)"
     ],
     "deny": [],
     "ask": []

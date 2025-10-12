@@ -60,7 +60,9 @@ Rules:
 - Focus ONLY on business-critical information
 - Omit small talk and pleasantries
 - Combine related points into single bullets
-- leadQuality: hot=ready to buy/demo, warm=interested, cold=just browsing";
+- leadQuality: hot=ready to buy/demo, warm=interested, cold=just browsing
+- ALWAYS provide executiveSummary even for brief conversations (e.g., 'Brief greeting exchange, no business discussion yet')
+- If conversation is too short for key points, set arrays to empty [] but always provide executiveSummary";
 
             // Call Groq API
             var requestBody = new
@@ -72,7 +74,8 @@ Rules:
                     new { role = "user", content = prompt }
                 },
                 temperature = 0.3,
-                max_tokens = 750
+                max_tokens = 750,
+                response_format = new { type = "json_object" }  // Force JSON-only response
             };
 
             var request = new HttpRequestMessage(HttpMethod.Post, "https://api.groq.com/openai/v1/chat/completions");
@@ -100,6 +103,43 @@ Rules:
                 return GenerateFallbackSummary(messages, roomName);
             }
 
+            // Log first 200 chars for debugging
+            _logger.LogDebug("Raw Groq response (first 200 chars): {Response}",
+                summaryJson.Substring(0, Math.Min(200, summaryJson.Length)));
+
+            // Clean markdown code fences AND any surrounding text
+            summaryJson = summaryJson.Trim();
+
+            // Remove markdown code fences if present
+            if (summaryJson.Contains("```"))
+            {
+                _logger.LogDebug("Removing markdown code fences from Groq response");
+                var startIndex = summaryJson.IndexOf('{');
+                var endIndex = summaryJson.LastIndexOf('}');
+                if (startIndex >= 0 && endIndex > startIndex)
+                {
+                    summaryJson = summaryJson.Substring(startIndex, endIndex - startIndex + 1);
+                }
+            }
+
+            // Extract JSON if wrapped in explanatory text (fallback safety)
+            if (!summaryJson.StartsWith("{"))
+            {
+                _logger.LogWarning("Response doesn't start with JSON, attempting to extract...");
+                var startIndex = summaryJson.IndexOf('{');
+                var endIndex = summaryJson.LastIndexOf('}');
+                if (startIndex >= 0 && endIndex > startIndex)
+                {
+                    _logger.LogDebug("Extracting JSON from position {Start} to {End}", startIndex, endIndex);
+                    summaryJson = summaryJson.Substring(startIndex, endIndex - startIndex + 1);
+                }
+                else
+                {
+                    _logger.LogError("Could not find JSON in Groq response");
+                    return GenerateFallbackSummary(messages, roomName);
+                }
+            }
+
             _logger.LogInformation("Successfully generated AI summary with Groq");
 
             // Parse the summary JSON and format as HTML
@@ -118,7 +158,7 @@ Rules:
         var sb = new StringBuilder();
         foreach (var msg in messages)
         {
-            var speaker = msg.Role == "user" ? "User" : "Naina";
+            var speaker = msg.Role == "user" ? "User" : "Anushka";
             sb.AppendLine($"{speaker}: {msg.Text}");
         }
         return sb.ToString();
@@ -155,6 +195,24 @@ Rules:
         sb.AppendLine($"<tr><td style='padding: 6px 0; color: #6b7280;'><strong>Lead Quality:</strong></td><td style='padding: 6px 0;'><span style='display: inline-block; padding: 4px 12px; border-radius: 6px; background: {GetLeadQualityColor(summary.LeadQuality)}; color: white; font-weight: 600; font-size: 13px; text-transform: uppercase;'>{summary.LeadQuality ?? "N/A"}</span></td></tr>");
         sb.AppendLine("</table>");
         sb.AppendLine("</div>");
+
+        // Check if summary is too minimal (brief conversation with no substantial content)
+        var hasContent = (summary.KeyPoints?.Any() ?? false) ||
+                         (summary.UserNeeds?.Any() ?? false) ||
+                         (summary.Recommendations?.Any() ?? false) ||
+                         (summary.ActionItems?.Any() ?? false) ||
+                         !string.IsNullOrEmpty(summary.ExecutiveSummary);
+
+        if (!hasContent)
+        {
+            _logger.LogInformation("Brief conversation detected - including full transcript");
+            sb.AppendLine("<div style='background: #fef3c7; padding: 18px; border-radius: 10px; border-left: 4px solid #f59e0b; margin: 25px 0;'>");
+            sb.AppendLine("<p style='margin: 0; color: #92400e;'><strong>ℹ️ Brief Conversation:</strong> This was a short interaction without substantial business discussion. The full conversation is included below for your reference.</p>");
+            sb.AppendLine("</div>");
+
+            // Force include full transcript for brief conversations
+            includeFullTranscript = true;
+        }
 
         // Key Points
         if (summary.KeyPoints != null && summary.KeyPoints.Any())

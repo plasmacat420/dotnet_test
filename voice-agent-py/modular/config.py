@@ -20,7 +20,12 @@ else:
 # Agent Configuration
 AGENT_NAME = "hindi-voice-agent"
 AGENT_PORT = int(os.getenv("AGENT_PORT", "8765"))
-PLAYGROUND_MODE = os.getenv("PLAYGROUND_MODE", "True").lower() == "true"
+# IMPORTANT: Set to False for explicit dispatch (required for LiveKit Cloud)
+# When False, agent must be explicitly dispatched to rooms via API
+PLAYGROUND_MODE = False  # Use explicit dispatch for Cloud agents
+
+# API Configuration
+API_BASE_URL = os.getenv("API_BASE_URL", "http://api:8080")  # Default for local dev
 
 # LiveKit Configuration
 LIVEKIT_URL = os.getenv("LIVEKIT_URL")

@@ -81,6 +81,9 @@ builder.Services.AddScoped<EmailService>();
 // Register Summary Service with HttpClient
 builder.Services.AddHttpClient<SummaryService>();
 
+// Register Agent Dispatch Service with HttpClient
+builder.Services.AddHttpClient<AgentDispatchService>();
+
 // ═══════════════════════════════════════════════════════════════════════════
 // STEP 3: BUILD THE APPLICATION
 // ═══════════════════════════════════════════════════════════════════════════

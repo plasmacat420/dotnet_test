@@ -5,7 +5,17 @@ import os
 
 from livekit import agents
 from livekit.agents import JobContext
-from livekit.plugins import deepgram, openai, silero, google, groq, sarvam, elevenlabs
+from livekit.plugins import deepgram, openai, silero, google, groq, sarvam
+
+# Import elevenlabs separately (it's an optional plugin)
+try:
+    from livekit.plugins import elevenlabs
+except ImportError:
+    try:
+        import livekit_plugins_elevenlabs as elevenlabs
+    except ImportError:
+        elevenlabs = None
+        logging.warning("ElevenLabs plugin not available")
 
 import modular.config as config
 from modular.conversation_manager import ConversationManager
@@ -114,7 +124,7 @@ def prewarm_fnc(proc: agents.JobProcess):
         )
 
         # TTS based on config (default: ElevenLabs for smooth voice)
-        if config.TTS_PROVIDER == "elevenlabs":
+        if config.TTS_PROVIDER == "elevenlabs" and elevenlabs:
             proc.userdata["tts"] = elevenlabs.TTS(
                 voice_id=config.TTS_VOICE,
                 model=config.TTS_MODEL
@@ -133,10 +143,9 @@ def prewarm_fnc(proc: agents.JobProcess):
                 speaker=config.TTS_VOICE
             )
         else:
-            # Default to ElevenLabs
-            proc.userdata["tts"] = elevenlabs.TTS(
-                voice="Rachel"
-            )
+            # Fallback: Use OpenAI TTS if ElevenLabs not available
+            logger.info("Falling back to OpenAI TTS")
+            proc.userdata["tts"] = openai.TTS(voice="alloy")
 
 
         # Silero VAD

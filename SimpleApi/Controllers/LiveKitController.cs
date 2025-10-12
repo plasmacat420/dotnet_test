@@ -11,15 +11,18 @@ namespace SimpleApi.Controllers;
 public class LiveKitController : ControllerBase
 {
     private readonly LiveKitTokenService _tokenService;
+    private readonly AgentDispatchService _agentDispatch;
     private readonly ILogger<LiveKitController> _logger;
     private readonly Configuration.LiveKitOptions _livekitOptions;
 
     public LiveKitController(
         LiveKitTokenService tokenService,
+        AgentDispatchService agentDispatch,
         ILogger<LiveKitController> logger,
         Microsoft.Extensions.Options.IOptions<Configuration.LiveKitOptions> livekitOptions)
     {
         _tokenService = tokenService;
+        _agentDispatch = agentDispatch;
         _logger = logger;
         _livekitOptions = livekitOptions.Value;
     }
@@ -48,10 +51,15 @@ public class LiveKitController : ControllerBase
             }
 
             // Create unique room name for this session
-            // Agent will auto-dispatch to any new room (playground mode)
             var roomName = $"voice-session-{Guid.NewGuid():N}".Substring(0, 30);
 
             var token = _tokenService.GenerateToken(roomName, identity, name);
+
+            // Dispatch cloud agent to this room (fire and forget but log immediately)
+            var dispatchTask = _agentDispatch.DispatchAgentToRoomAsync(roomName);
+
+            // Don't await - let it run in background, but log the start
+            _logger.LogInformation("Dispatching agent to room {RoomName}", roomName);
 
             return Ok(new TokenResponse
             {

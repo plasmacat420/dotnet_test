@@ -7,6 +7,7 @@ from livekit.agents import JobContext
 from modular.session_manager import SessionManager
 from modular.transcript_manager import TranscriptManager
 from modular.utils import setup_logger
+from modular import config
 
 
 class ConversationManager:
@@ -17,8 +18,8 @@ class ConversationManager:
         self.instructions = instructions
         self.logger = setup_logger(__name__)
         self.session_manager = SessionManager(self)
-        # Use Docker service name 'api' with internal port 8080
-        self.transcript_manager = TranscriptManager(api_base_url="http://api:8080")
+        # Use configurable API base URL (defaults to Docker internal for local dev)
+        self.transcript_manager = TranscriptManager(api_base_url=config.API_BASE_URL)
         self.participant: Optional[rtc.Participant] = None
         self.log_prefix = f"[{ctx.room.name}/AgentJob-{ctx.job.id[:7]}]"
         self.is_connected = False
@@ -57,8 +58,17 @@ class ConversationManager:
     def _on_transcript_received(self, transcript) -> None:
         """Handle received transcript for backend logging"""
         text = transcript.transcript.strip()
-        timestamp = datetime.now().isoformat()
-        self.logger.debug(f"{self.log_prefix} User: {text}")
+
+        # Use the transcript's actual timestamp for correct ordering
+        # Try transcript timestamp first, fallback to now if unavailable
+        if hasattr(transcript, 'timestamp') and transcript.timestamp:
+            timestamp = transcript.timestamp
+        elif hasattr(transcript, 'end_time') and transcript.end_time:
+            timestamp = transcript.end_time
+        else:
+            timestamp = datetime.now().timestamp()  # Unix timestamp as fallback
+
+        self.logger.debug(f"{self.log_prefix} User: {text} [ts: {timestamp}]")
         self.user_transcripts.append({"text": text, "timestamp": timestamp})
 
         # User transcripts are automatically sent by VoiceAgent.on_user_turn_completed
