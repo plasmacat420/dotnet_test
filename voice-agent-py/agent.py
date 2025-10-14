@@ -19,6 +19,7 @@ except ImportError:
 
 import modular.config as config
 from modular.conversation_manager import ConversationManager
+from modular.fallback_tts import FallbackTTS
 from modular.utils import setup_logger
 
 logger = setup_logger(__name__)
@@ -123,29 +124,47 @@ def prewarm_fnc(proc: agents.JobProcess):
             model="llama-3.3-70b-versatile"  # Fast, accurate, great for voice
         )
 
-        # TTS based on config (default: ElevenLabs for smooth voice)
-        if config.TTS_PROVIDER == "elevenlabs" and elevenlabs:
-            proc.userdata["tts"] = elevenlabs.TTS(
-                voice_id=config.TTS_VOICE,
-                model=config.TTS_MODEL
-            )
-        elif config.TTS_PROVIDER == "openai":
-            proc.userdata["tts"] = openai.TTS(voice=config.TTS_VOICE)
-        elif config.TTS_PROVIDER == "azure":
-            proc.userdata["tts"] = openai.TTS(
-                voice=config.TTS_VOICE,
-                api_key=config.AZURE_OPENAI_KEY,
-                base_url=f"{config.AZURE_OPENAI_ENDPOINT.rstrip('/')}/openai/deployments/tts"
-            )
-        elif config.TTS_PROVIDER == "sarvam":
+        # TTS with fallback support - try ElevenLabs first, fall back to Sarvam on error
+        try:
+            if config.TTS_PROVIDER == "elevenlabs" and elevenlabs and config.TTS_FALLBACK_ENABLED:
+                logger.info(f"Initializing ElevenLabs TTS with {config.TTS_FALLBACK_PROVIDER} fallback")
+
+                primary_tts = elevenlabs.TTS(
+                    voice_id=config.TTS_VOICE,
+                    model=config.TTS_MODEL
+                )
+
+                fallback_tts = sarvam.TTS(
+                    target_language_code="hi-IN",
+                    speaker=config.TTS_FALLBACK_VOICE
+                )
+
+                proc.userdata["tts"] = FallbackTTS(
+                    primary_tts=primary_tts,
+                    fallback_tts=fallback_tts,
+                    primary_name="ElevenLabs",
+                    fallback_name="Sarvam"
+                )
+                logger.info("TTS initialized: ElevenLabs + Sarvam fallback")
+
+            elif config.TTS_PROVIDER == "elevenlabs" and elevenlabs:
+                logger.info("Initializing ElevenLabs TTS (no fallback)")
+                proc.userdata["tts"] = elevenlabs.TTS(
+                    voice_id=config.TTS_VOICE,
+                    model=config.TTS_MODEL
+                )
+                logger.info("TTS initialized: ElevenLabs only")
+            else:
+                raise Exception(f"TTS_PROVIDER={config.TTS_PROVIDER}, using fallback")
+
+        except Exception as e:
+            # Fallback to Sarvam if ElevenLabs fails
+            logger.warning(f"ElevenLabs TTS initialization failed: {e}. Falling back to Sarvam TTS")
             proc.userdata["tts"] = sarvam.TTS(
                 target_language_code="hi-IN",
-                speaker=config.TTS_VOICE
+                speaker="anushka"
             )
-        else:
-            # Fallback: Use OpenAI TTS if ElevenLabs not available
-            logger.info("Falling back to OpenAI TTS")
-            proc.userdata["tts"] = openai.TTS(voice="alloy")
+            logger.info("TTS initialized: Sarvam (fallback)")
 
 
         # Silero VAD

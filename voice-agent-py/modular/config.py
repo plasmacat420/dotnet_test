@@ -9,10 +9,10 @@ root_env = Path(__file__).parent.parent.parent / ".env"
 secrets_file = Path(__file__).parent.parent / ".secrets"
 
 if root_env.exists():
-    load_dotenv(root_env)
+    load_dotenv(root_env, override=True)
     print(f"Loaded environment from: {root_env}")
 elif secrets_file.exists():
-    load_dotenv(secrets_file)
+    load_dotenv(secrets_file, override=True)
     print(f"Loaded environment from: {secrets_file}")
 else:
     print("No .env or .secrets file found, using system environment variables")
@@ -114,3 +114,8 @@ TERTIARY_LANGUAGE = "mr"  # Marathi
 TTS_PROVIDER = os.getenv("TTS_PROVIDER", "elevenlabs")  # elevenlabs, openai, azure, google, sarvam
 TTS_VOICE = os.getenv("TTS_VOICE", "Jessica")  # Voice name/ID
 TTS_MODEL = os.getenv("TTS_MODEL", "eleven_multilingual_v2")  # Model (for ElevenLabs)
+
+# TTS Fallback Configuration
+TTS_FALLBACK_ENABLED = os.getenv("TTS_FALLBACK_ENABLED", "true").lower() == "true"
+TTS_FALLBACK_PROVIDER = os.getenv("TTS_FALLBACK_PROVIDER", "sarvam")  # Backup TTS if primary fails
+TTS_FALLBACK_VOICE = os.getenv("TTS_FALLBACK_VOICE", "anushka")  # Fallback voice
