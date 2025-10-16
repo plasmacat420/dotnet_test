@@ -117,6 +117,16 @@
   <!-- LiveKit Client SDK - Using jsdelivr CDN -->
   <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.5.8/dist/livekit-client.umd.min.js"></script>
 
+  <!-- Import map for three.js modules -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
   <!-- Config -->
   <script src="assets/js/config.js?v=1.0"></script>
 
@@ -125,6 +135,9 @@
 
   <!-- Chat Component -->
   <script src="assets/js/chat.js?v=1.1"></script>
+
+  <!-- Game -->
+  <script type="module" src="assets/js/game.js?v=2.9"></script>
 
   <!-- App -->
   <script src="assets/js/app.js?v=3.2"></script>

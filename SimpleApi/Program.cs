@@ -114,8 +114,8 @@ app.Use(async (context, next) =>
         "default-src 'self'; " +
         "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net; " +
         "style-src 'self' 'unsafe-inline'; " +
-        "img-src 'self' data: https:; " +
-        "connect-src 'self' wss: https:; " +
+        "img-src 'self' data: https: blob:; " +
+        "connect-src 'self' wss: https: blob:; " +
         "font-src 'self' data:; " +
         "media-src 'self';";
 
@@ -156,8 +156,16 @@ app.UseHttpsRedirection();
 // [5] Static Files
 // Serves files from wwwroot folder (your frontend)
 app.UseDefaultFiles(); // Serves index.html by default
+
+// Configure static file options with custom MIME types
+var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+// Add .glb MIME type for 3D models
+provider.Mappings[".glb"] = "model/gltf-binary";
+provider.Mappings[".gltf"] = "model/gltf+json";
+
 app.UseStaticFiles(new StaticFileOptions
 {
+    ContentTypeProvider = provider,
     OnPrepareResponse = ctx =>
     {
         // Force browsers to always revalidate cached files

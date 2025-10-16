@@ -118,7 +118,7 @@ function ChatWindow({ voiceClient, isConnected, onClose }) {
     // Subscribe to transcription events
     room.on(LiveKit.RoomEvent.TranscriptionReceived, handleTranscriptionReceived);
 
-    console.log('[Chat] Subscribed to LiveKit transcription events');
+    // console.log('[Chat] Subscribed to LiveKit transcription events');
 
     return () => {
       room.off(LiveKit.RoomEvent.TranscriptionReceived, handleTranscriptionReceived);
@@ -126,7 +126,7 @@ function ChatWindow({ voiceClient, isConnected, onClose }) {
         clearTimeout(updateTimeoutRef.current);
       }
       segmentsMapRef.current.clear();
-      console.log('[Chat] Unsubscribed from transcription events');
+      // console.log('[Chat] Unsubscribed from transcription events');
     };
   }, [voiceClient]);
 

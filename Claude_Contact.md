@@ -2,8 +2,8 @@
 
 **Document Purpose:** Comprehensive codebase analysis for AI assistant (Claude) to understand the system architecture, design patterns, components, and known issues for future reference and maintenance.
 
-**Last Updated:** 2025-10-12
-**Project:** dotnet_test (LiveKit Voice Agent System)
+**Last Updated:** 2025-10-14
+**Project:** dotnet_test (LiveKit Voice Agent System + Zombie Killer Game)
 **Author:** Faiz Shaikh
 **Repository:** https://github.com/plasmacat420/dotnet_test
 **Deployment:** Azure App Service (API) + LiveKit Cloud (Agent)
@@ -938,22 +938,572 @@ When modifying this codebase, check:
 
 ---
 
+## 🎮 ZOMBIE KILLER GAME (THREE.JS)
+
+### Overview
+A browser-based 3D zombie survival game integrated into the contact page, featuring elemental orbs (ice, fire, electric) that orbit the mouse cursor and can be thrown at spawning zombies. Built with Three.js for WebGL rendering.
+
+### Game Architecture
+
+**Technology Stack:**
+- **Three.js (v0.160.0)** - 3D rendering engine
+- **GLTFLoader** - 3D model loading (.glb format)
+- **ES6 Modules** - Modern JavaScript module system
+- **Vanilla JavaScript** - No additional game frameworks
+- **RequestAnimationFrame** - 60 FPS game loop
+
+**Design Philosophy:**
+- Seamless 2D → 3D transition (CSS orbs become Three.js orbs)
+- Lightweight and performant (no heavy libraries)
+- Modern, smooth animations with gameplay feel
+- Mouse-driven orb control system
+
+### File Structure
+
+```
+SimpleApi/wwwroot/
+├── index.html                    # Added three.js import map + game script
+├── assets/
+│   ├── js/
+│   │   ├── game.js               # Main game logic (NEW)
+│   │   ├── app.js                # Modified: Added game mode state
+│   │   └── config.js
+│   ├── css/
+│   │   └── style.css             # Modified: Game mode styles
+│   └── models/
+│       └── zombie.glb            # 3D zombie model (NEW)
+```
+
+### Game Flow
+
+**1. Entering Game Mode:**
+```
+User clicks "Play Game" button
+  → app.js sets isGameMode = true
+  → Contact card fades out (CSS transition)
+  → CSS orbs move to staging positions (bottom-center)
+  → 'startGame' event fired
+  → game.js initializes (after 1.8s delay)
+  → Three.js scene created
+  → 3D orbs created and scaled in
+  → CSS orbs hidden
+  → Zombie model loaded
+  → Game loop starts
+```
+
+**2. Game Loop (60 FPS):**
+```
+requestAnimationFrame
+  → Track mouse position
+  → Convert to 3D world coordinates
+  → Position orbs in orbit around mouse (120° spacing)
+  → Animate orb effects:
+      - Ice: Rotating crystals + flowing aura
+      - Fire: Swirling particles + pulsing glow
+      - Electric: Crackling lightning + morphing aura
+  → Render scene
+```
+
+**3. Exiting Game Mode:**
+```
+User clicks close button (X)
+  → cleanup() called
+  → Stop animation loop
+  → Remove Three.js renderer
+  → Dispose geometries/materials
+  → Show CSS orbs again
+  → Remove event listeners
+  → Reset game state
+```
+
+### Core Components
+
+#### **game.js Module Structure**
+
+**1. Initialization (initGame)**
+```javascript
+- Creates Three.js scene, camera, renderer
+- Camera: PerspectiveCamera at (0, 1, 5) looking at origin
+- Scene background: #0a1628 (matches CSS)
+- Lighting setup: ambient + directional + point lights
+- Event listeners: mouse tracking, window resize
+- Starts animation loop
+```
+
+**2. Orb Creation (createOrbs)**
+
+**Ice Orb:**
+- Core: Blue sphere (0.2 radius) with MeshPhysicalMaterial
+- 8 octahedron crystals orbiting around core
+- Dual-layer amoeba aura (IcosahedronGeometry)
+- Point light: cyan glow
+- Animations: Rotating crystals, morphing aura, bobbing motion
+
+**Fire Orb:**
+- Core: Orange sphere (0.2 radius)
+- 20 swirling particle spheres in orbital motion
+- Dual-layer amoeba aura with pulsing opacity
+- Point light: orange glow
+- Animations: Particle swirl, flickering, aura pulse
+
+**Electric Orb:**
+- Core: Purple sphere (0.18 radius, darker: #8800cc)
+- 6 jagged lightning arcs (regenerate randomly)
+- Dual-layer amoeba aura with crackle effect
+- Point light: purple glow
+- Animations: Arc regeneration, aura morphing, random opacity
+
+**Key Design Decisions:**
+- IcosahedronGeometry for organic, irregular aura shapes
+- THREE.AdditiveBlending for stacking glow effects
+- BackSide rendering for ethereal smoky look
+- userData for storing animation-related objects
+
+**3. 2D→3D Handoff (handoffOrbs)**
+```javascript
+- Fade out CSS orbs (opacity: 0)
+- Scale 3D orbs from 0.01 to 1.0
+- Staggered animation (100ms delays)
+- Easing: back.out effect for bounce
+- Duration: 600ms per orb
+```
+
+**4. Mouse Orbit System**
+```javascript
+// Convert screen to NDC (-1 to +1)
+mouseX = (event.clientX / width) * 2 - 1
+mouseY = -(event.clientY / height) * 2 + 1
+
+// Smooth following (lerp)
+smoothMouseX += (mouseX - smoothMouseX) * 0.05
+
+// Position orbs in circular orbit
+orbs.ice.position.x = targetX + cos(angle) * orbitRadius
+orbs.ice.position.y = targetY + sin(angle) * orbitRadius
+
+// 120° spacing between orbs
+angle1 = orbitAngle
+angle2 = orbitAngle + (2π / 3)
+angle3 = orbitAngle + (4π / 3)
+```
+
+**5. Zombie Model Loading (loadZombieModel)**
+```javascript
+- GLTFLoader loads zombie.glb (16.9 MB)
+- Debug logging: bounding box size
+- Clone model for spawning
+- Scale: 0.0005 (model exported huge from Blender!)
+- Position: (0, 0, -3) behind orbs
+- Rotation: 0 (facing camera)
+```
+
+**Critical Learning:**
+The zombie model was exported at massive scale, requiring scale of 0.0005 to be visible without blocking the entire screen.
+
+**6. Animation Loop (animate)**
+```javascript
+- Runs at 60 FPS via requestAnimationFrame
+- Updates:
+  * Orb positions (mouse following + orbit)
+  * Ice crystals rotation
+  * Fire particles swirl
+  * Electric arcs regeneration
+  * All aura animations (rotation + scaling)
+- Renders scene to canvas
+```
+
+**7. Cleanup (cleanup)**
+```javascript
+- Stop animation loop
+- Dispose all Three.js resources
+- Remove event listeners
+- Reset game state
+- Show CSS orbs
+```
+
+### Modified Files
+
+#### **1. index.html**
+
+**Added Import Map:**
+```html
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+```
+
+**Added Game Script:**
+```html
+<script type="module" src="assets/js/game.js?v=2.9"></script>
+```
+
+**Why Import Map:**
+GLTFLoader has ES6 imports like `import * as THREE from 'three'`. The import map resolves "three" to the CDN URL.
+
+#### **2. app.js**
+
+**Added Game Mode State:**
+```javascript
+const [isGameMode, setIsGameMode] = useState(false);
+
+const startGame = () => {
+  setIsGameMode(true);
+  window.dispatchEvent(new CustomEvent('startGame'));
+};
+```
+
+**Added Play Button:**
+```jsx
+React.createElement('button', {
+  className: "play-game-btn",
+  onClick: startGame
+},
+  // SVG play icon
+  React.createElement('span', null, 'Play Game')
+)
+```
+
+**Added Close Button:**
+```jsx
+isGameMode && React.createElement('button', {
+  className: 'game-close-btn'
+}, '×')
+```
+
+**Added Game Container:**
+```jsx
+isGameMode && React.createElement('div', {
+  id: 'game-canvas-container',
+  className: 'game-container'
+})
+```
+
+#### **3. style.css**
+
+**Play Game Button Styles:**
+```css
+.play-game-btn {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 40px;
+  background: linear-gradient(135deg, rgba(110, 231, 183, 0.2), ...);
+  border: 2px solid rgba(110, 231, 183, 0.4);
+  border-radius: 50px;
+  /* Shimmer effect on hover */
+}
+```
+
+**Game Mode Transitions:**
+```css
+.app-container.game-mode .contact-card {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+
+.app-container.game-mode .ice-orb {
+  left: calc(50% - 120px) !important;
+  top: calc(100% - 150px) !important;
+  transition: left 1s cubic-bezier(0.34, 1.56, 0.64, 1), ...;
+}
+```
+
+**Game Close Button:**
+```css
+.game-close-btn {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  /* Rotate on hover */
+  animation: fadeInButton 0.4s ease-out 1.2s forwards;
+}
+```
+
+**Game Container:**
+```css
+.game-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 50;
+  opacity: 0;
+  animation: fadeInGame 0.5s ease-out 1s forwards;
+}
+```
+
+#### **4. Program.cs**
+
+**Added .glb MIME Type Support:**
+```csharp
+var provider = new FileExtensionContentTypeProvider();
+provider.Mappings[".glb"] = "model/gltf-binary";
+provider.Mappings[".gltf"] = "model/gltf+json";
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    ContentTypeProvider = provider,
+    ...
+});
+```
+
+**Updated CSP for Blob URLs:**
+```csharp
+context.Response.Headers["Content-Security-Policy"] =
+    "default-src 'self'; " +
+    "img-src 'self' data: https: blob:; " +     // Added blob:
+    "connect-src 'self' wss: https: blob:; " +  // Added blob:
+    ...;
+```
+
+**Why Blob:**
+GLTFLoader creates blob URLs for embedded textures in the zombie model. Without `blob:` in CSP, textures fail to load.
+
+### Technical Challenges & Solutions
+
+**Challenge 1: GLTFLoader Not Loading**
+- **Problem:** `THREE.GLTFLoader is not a constructor`
+- **Solution:** Use ES6 module import + import map
+- **Learning:** Three.js addons require module system, not UMD
+
+**Challenge 2: Zombie Blocking Entire Screen**
+- **Problem:** Zombie model exported at massive scale from Blender
+- **Solution:** Scale down to 0.0005
+- **Learning:** Always check bounding box size on model load
+
+**Challenge 3: Zombie Textures Not Loading**
+- **Problem:** CSP blocking blob: URLs
+- **Solution:** Add `blob:` to `img-src` and `connect-src`
+- **Learning:** GLTFLoader uses blob URLs for embedded textures
+
+**Challenge 4: 3D Coordinate Confusion**
+- **Problem:** Zombie positioned wrong (too close/far)
+- **Solution:** Understand camera is at (0,1,5) looking at origin
+- **Learning:** Negative Z moves away from camera, positive Z moves closer
+
+**Challenge 5: Aura Looking Like "Glow Balls"**
+- **Problem:** Perfect spheres looked unnatural
+- **Solution:** Use IcosahedronGeometry + rotation for organic shapes
+- **Learning:** Irregular geometry + animation = better visual appeal
+
+### Game State Management
+
+**Current State Variables:**
+```javascript
+let gameInitialized = false;      // Prevents double init
+let scene, camera, renderer;      // Three.js core
+let orbs = { ice, fire, electric }; // Orb objects
+let animationId;                  // For cancelAnimationFrame
+let cssOrbsHidden = false;        // Track CSS orb state
+let zombieModel = null;           // Loaded GLTF scene
+let zombies = [];                 // Active zombie instances
+```
+
+**Orb Data Structure:**
+```javascript
+orbs.ice.userData = {
+  core: mesh,                     // Core sphere
+  crystals: [mesh, ...],          // Ice crystals
+  glow: mesh,                     // Outer aura
+  glow2: mesh,                    // Inner aura
+  glowGeo: geometry,              // For cleanup
+  glow2Geo: geometry
+}
+```
+
+**Zombie Data Structure:**
+```javascript
+zombies.push({
+  mesh: clonedModel,              // Three.js Group
+  health: 100,                    // Hit points
+  speed: 0.5                      // Movement speed
+});
+```
+
+### Performance Optimizations
+
+**1. Geometry Reuse:**
+- IcosahedronGeometry created once per orb
+- Stored in userData for later disposal
+
+**2. RequestAnimationFrame:**
+- Native 60 FPS loop (browser-optimized)
+- Automatically pauses when tab inactive
+
+**3. Smooth Lerp:**
+```javascript
+smoothMouseX += (mouseX - smoothMouseX) * 0.05
+```
+- Prevents jittery movement
+- 95% of gap closed each frame
+
+**4. Proper Cleanup:**
+- Dispose all geometries/materials
+- Remove event listeners
+- Cancel animation frame
+- Prevents memory leaks
+
+**5. Additive Blending:**
+- Glows stack and brighten naturally
+- No overdraw issues
+
+### Known Limitations
+
+**1. No Gameplay Yet:**
+- Orb throwing not implemented
+- Zombie spawning/movement not implemented
+- Collision detection not implemented
+- No win/lose conditions
+
+**2. Single Zombie:**
+- Only test zombie spawns
+- No wave system
+- No difficulty scaling
+
+**3. No Audio:**
+- No sound effects
+- No background music
+- No voice feedback
+
+**4. No Mobile Optimization:**
+- Works on mobile but not optimized
+- Touch controls basic
+- Performance not tested on low-end devices
+
+**5. No Persistence:**
+- No score tracking
+- No high scores
+- No game state save
+
+### Future Enhancements (TODO)
+
+**Priority 1 (Core Gameplay):**
+- [ ] Implement orb throwing mechanics (click to throw)
+- [ ] Add zombie spawning system (waves)
+- [ ] Implement zombie movement (towards player)
+- [ ] Add collision detection (orbs hit zombies)
+- [ ] Implement damage system (zombie health)
+- [ ] Add zombie death animation
+
+**Priority 2 (Polish):**
+- [ ] Particle effects on orb throw
+- [ ] Explosion effects on zombie death
+- [ ] Screen shake on impact
+- [ ] Score tracking UI
+- [ ] Wave counter
+- [ ] Health/ammo indicators
+
+**Priority 3 (Advanced):**
+- [ ] Multiple zombie types
+- [ ] Power-ups
+- [ ] Orb upgrades
+- [ ] Boss zombies
+- [ ] Leaderboard
+- [ ] Sound effects + music
+
+### Debug Tools
+
+**Exposed to Window:**
+```javascript
+window.ZombieGame = {
+  init: initGame,
+  cleanup: cleanup,
+  getScene: () => scene,
+  getOrbs: () => orbs
+};
+```
+
+**Console Commands:**
+```javascript
+// Get scene info
+ZombieGame.getScene()
+
+// Get orb positions
+ZombieGame.getOrbs()
+
+// Manually start game
+ZombieGame.init()
+
+// Cleanup and reset
+ZombieGame.cleanup()
+```
+
+**Debug Logs:**
+```
+[Game] Initializing three.js scene...
+[Game] Creating elemental orbs with effects...
+[Game] Performing 2D→3D handoff...
+[Game] Handoff complete!
+[Game] Loading zombie model...
+[Game] Loading zombie: 99.97%
+[Game] Zombie model loaded successfully!
+[Game] Zombie model size: Vector3 {x: 1.2, y: 2.4, z: 0.8}
+[Game] Spawning test zombie...
+[Game] Test zombie spawned at: Vector3 {x: 0, y: 0, z: -3}
+```
+
+### Integration with Voice Agent
+
+**No Integration Yet:**
+- Game and voice agent are separate systems
+- No voice controls for game
+- No AI opponent
+
+**Future Possibilities:**
+- Voice commands to throw orbs ("Fire!", "Ice!", "Lightning!")
+- AI voice commentary during gameplay
+- Multiplayer with voice chat via LiveKit
+- Voice-controlled difficulty settings
+
+---
+
 ## 🏁 CONCLUSION
 
-This is a **production-ready voice agent system** with solid architecture and good separation of concerns. The main strengths are:
+This is a **dual-purpose system** combining a production-ready voice agent with an interactive 3D game demo. The architecture demonstrates solid separation of concerns and modern web development practices.
 
+### Voice Agent System Strengths:
 1. **Modular Design** - Easy to swap AI providers
 2. **Real-time Performance** - Low-latency voice conversations
 3. **Docker Deployment** - Simple to deploy anywhere
 4. **Comprehensive Logging** - Good observability
+5. **Cloud-Native** - LiveKit Cloud integration
 
-The main areas for improvement are:
+### Zombie Game Strengths:
+1. **Smooth Animations** - Seamless 2D→3D transitions
+2. **Modern Tech Stack** - Three.js with ES6 modules
+3. **Visual Polish** - Elemental orbs with particle effects
+4. **Proper Cleanup** - No memory leaks, good resource management
+5. **Extensible** - Clean code structure for adding gameplay features
+
+### Areas for Improvement:
+
+**Voice Agent:**
 1. **Security** - Add authentication and secrets management
 2. **Scalability** - Implement database and horizontal scaling
 3. **Monitoring** - Add APM and metrics collection
 4. **Testing** - Add unit and integration tests
 
-**Overall Grade: B+** (Production-capable with room for enterprise features)
+**Zombie Game:**
+1. **Gameplay** - Implement throwing, collision, damage systems
+2. **Content** - Add more zombies, waves, difficulty scaling
+3. **Polish** - Sound effects, particle explosions, screen shake
+4. **Mobile** - Optimize for touch devices and low-end hardware
+5. **Integration** - Connect with voice agent for voice controls
+
+**Overall Grade:**
+- **Voice Agent: B+** (Production-capable with room for enterprise features)
+- **Zombie Game: B-** (Solid foundation, needs gameplay implementation)
 
 ---
 

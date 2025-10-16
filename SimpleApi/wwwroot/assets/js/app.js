@@ -281,6 +281,7 @@ function ContactCard() {
   const [charIdx, setCharIdx] = useState(0);
   const [visible, setVisible] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [isGameMode, setIsGameMode] = useState(false);
 
   const speakingRef = useRef(false);
   const speakIndexRef = useRef(0); // Track which sentence to speak next
@@ -434,6 +435,13 @@ function ContactCard() {
     };
   }, []);
 
+  // Start game mode - smooth transition
+  const startGame = () => {
+    setIsGameMode(true);
+    // Trigger custom event for App component to handle
+    window.dispatchEvent(new CustomEvent('startGame'));
+  };
+
   const copyEmail = (e) => {
     e.preventDefault();
     const email = config.contact.email;
@@ -558,7 +566,25 @@ function ContactCard() {
     ),
 
       // Caption
-      React.createElement('div', { className: "caption" }, config.contact.tagline)
+      React.createElement('div', { className: "caption" }, config.contact.tagline),
+
+      // Play Button
+      React.createElement('button', {
+        className: "play-game-btn",
+        onClick: startGame,
+        'aria-label': 'Start Zombie Killer Game'
+      },
+        React.createElement('svg', {
+          viewBox: '0 0 24 24',
+          fill: 'currentColor',
+          className: 'play-icon'
+        },
+          React.createElement('path', {
+            d: 'M8 5v14l11-7z'
+          })
+        ),
+        React.createElement('span', null, 'Play Game')
+      )
       )
     ),
 
@@ -588,6 +614,7 @@ function ContactCard() {
 function App() {
   const config = window.AppConfig;
   const [loading, setLoading] = useState(true);
+  const [gameMode, setGameMode] = useState(false);
 
   useEffect(() => {
     // Simulate initial load time for smooth transition
@@ -595,12 +622,52 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Listen for game start event
+  useEffect(() => {
+    const handleGameStart = () => {
+      setGameMode(true);
+    };
+    window.addEventListener('startGame', handleGameStart);
+    return () => window.removeEventListener('startGame', handleGameStart);
+  }, []);
+
+  // Exit game mode - smooth transition back
+  const exitGameMode = () => {
+    setGameMode(false);
+  };
+
   return React.createElement(ErrorBoundary, null,
     loading && React.createElement(LoadingScreen),
-    React.createElement('div', { className: 'app-container' },
+    React.createElement('div', {
+      className: gameMode ? 'app-container game-mode' : 'app-container'
+    },
       React.createElement(OrbitalElements),
       React.createElement(Tentacles),
-      React.createElement(ContactCard)
+      React.createElement(ContactCard),
+      // Game container (hidden initially)
+      gameMode && React.createElement('div', {
+        id: 'game-canvas-container',
+        className: 'game-container'
+      },
+        // Close button
+        React.createElement('button', {
+          className: 'game-close-btn',
+          onClick: exitGameMode,
+          'aria-label': 'Exit game and return to contact page'
+        },
+          React.createElement('svg', {
+            viewBox: '0 0 24 24',
+            fill: 'none',
+            stroke: 'currentColor',
+            strokeWidth: '2',
+            strokeLinecap: 'round',
+            strokeLinejoin: 'round'
+          },
+            React.createElement('line', { x1: '18', y1: '6', x2: '6', y2: '18' }),
+            React.createElement('line', { x1: '6', y1: '6', x2: '18', y2: '18' })
+          )
+        )
+      )
     )
   );
 }
