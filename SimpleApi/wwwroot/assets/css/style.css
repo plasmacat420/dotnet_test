@@ -1582,3 +1582,131 @@ body::before {
     font-size: 36px;
   }
 }
+
+/* ============================================
+   ADDITIONAL RESPONSIVE OPTIMIZATIONS
+   Tablet and Landscape Support
+   ============================================ */
+
+/* Tablet portrait (481px - 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+  #game-scoreboard {
+    top: 24px;
+    left: 24px;
+    padding: 18px 26px;
+  }
+
+  .game-close-btn {
+    width: 52px;
+    height: 52px;
+    top: 20px;
+    right: 20px;
+  }
+
+  .app-container.game-mode .ice-orb {
+    left: calc(50% - 100px) !important;
+  }
+
+  .app-container.game-mode .electric-orb {
+    left: calc(50% + 100px) !important;
+  }
+}
+
+/* Tablet landscape (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  #game-scoreboard {
+    top: 28px;
+    left: 28px;
+  }
+}
+
+/* Mobile landscape orientation */
+@media (max-width: 768px) and (orientation: landscape) {
+  #game-scoreboard {
+    top: 12px;
+    left: 12px;
+    padding: 12px 20px;
+    font-size: 0.9rem;
+  }
+
+  .score-value {
+    font-size: 32px;
+    margin-bottom: 6px;
+  }
+
+  .game-close-btn {
+    top: 12px;
+    right: 12px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .game-close-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* Small mobile devices (320px - 375px) */
+@media (max-width: 375px) {
+  #game-scoreboard {
+    padding: 14px 20px;
+  }
+
+  .score-value {
+    font-size: 32px;
+  }
+
+  .game-close-btn {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* Ultra-wide screens (> 1920px) */
+@media (min-width: 1920px) {
+  #game-scoreboard {
+    top: 40px;
+    left: 40px;
+    padding: 24px 36px;
+    font-size: 1.1rem;
+  }
+
+  .score-value {
+    font-size: 54px;
+  }
+
+  .game-close-btn {
+    width: 64px;
+    height: 64px;
+    top: 32px;
+    right: 32px;
+  }
+
+  .game-close-btn svg {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* Ensure game canvas is always full viewport */
+.game-container canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  touch-action: none; /* Prevent default touch behaviors */
+}
+
+/* Performance optimization for mobile */
+@media (max-width: 768px) {
+  .game-container {
+    will-change: auto; /* Prevent unnecessary compositing layers */
+  }
+
+  body.game-active {
+    overflow: hidden; /* Prevent scrolling during game */
+    position: fixed;
+    width: 100%;
+    height: 100%;
+  }
+}

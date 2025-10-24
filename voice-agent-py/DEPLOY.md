@@ -80,9 +80,12 @@ ELEVENLABS_API_KEY=your_elevenlabs_key
 #### Optional (Already set in render.yaml):
 ```
 TTS_PROVIDER=elevenlabs
-TTS_VOICE=Rachel
+TTS_VOICE=cgSgspJ2msm6clMCkdW9
 TTS_MODEL=eleven_multilingual_v2
-AGENT_NAME=Hindi-English-Voice-Agent
+TTS_FALLBACK_ENABLED=true
+TTS_FALLBACK_PROVIDER=sarvam
+TTS_FALLBACK_VOICE=anushka
+AGENT_NAME=hindi-voice-agent
 PLAYGROUND_MODE=false
 LOG_LEVEL=INFO
 AGENT_PORT=8081

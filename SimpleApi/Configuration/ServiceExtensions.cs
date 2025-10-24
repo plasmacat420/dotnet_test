@@ -33,24 +33,38 @@ public static class ServiceExtensions
     /// CORS must be configured or the browser will block the request.
     ///
     /// Current configuration:
-    /// - Allows requests from any origin (for development)
-    /// - In production, restrict to specific domains only!
+    /// - Development: Allows all origins for easier testing
+    /// - Production: Restricts to specific configured domains only
     /// </remarks>
     /// <param name="services">Service collection to add CORS to</param>
-    public static void ConfigureCors(this IServiceCollection services)
+    /// <param name="configuration">Configuration for allowed origins</param>
+    /// <param name="environment">Environment to determine development vs production</param>
+    public static void ConfigureCors(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
         services.AddCors(options =>
         {
             options.AddPolicy("AllowAll", builder =>
             {
-                builder
-                    .AllowAnyOrigin()      // Allow requests from any domain (CHANGE IN PRODUCTION!)
-                    .AllowAnyMethod()      // Allow GET, POST, PUT, DELETE, etc.
-                    .AllowAnyHeader();     // Allow any request headers
+                // In development, allow all origins for easier testing
+                if (environment.IsDevelopment())
+                {
+                    builder
+                        .AllowAnyOrigin()
+                        .AllowAnyMethod()
+                        .AllowAnyHeader();
+                }
+                else
+                {
+                    // In production, restrict to configured origins
+                    var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                        ?? new[] { "https://prepreater.azurewebsites.net", "http://localhost:5264" };
 
-                // PRODUCTION RECOMMENDATION:
-                // Replace AllowAnyOrigin() with:
-                // .WithOrigins("https://yourdomain.com", "https://www.yourdomain.com")
+                    builder
+                        .WithOrigins(allowedOrigins)
+                        .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                        .WithHeaders("Content-Type", "Authorization", "X-Requested-With")
+                        .AllowCredentials();  // Allow cookies/auth if needed
+                }
             });
         });
     }
@@ -141,8 +155,9 @@ public static class ServiceExtensions
     /// - Resource exhaustion
     ///
     /// Current policy:
-    /// - 100 requests per minute per IP address
+    /// - 200 requests per minute per IP address (increased for better UX)
     /// - Returns 429 (Too Many Requests) if exceeded
+    /// - Lightweight: Uses fixed window algorithm
     /// </remarks>
     /// <param name="services">Service collection to add rate limiting to</param>
     public static void ConfigureRateLimiting(this IServiceCollection services)
@@ -151,25 +166,24 @@ public static class ServiceExtensions
         {
             options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
             {
-                // Create a rate limit partition per IP address
                 var ipAddress = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
                 return RateLimitPartition.GetFixedWindowLimiter(ipAddress, _ =>
                     new FixedWindowRateLimiterOptions
                     {
-                        PermitLimit = 100,              // Maximum 100 requests
-                        Window = TimeSpan.FromMinutes(1), // Per 1 minute window
+                        PermitLimit = 200,                      // Increased limit for better UX
+                        Window = TimeSpan.FromMinutes(1),
                         QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                        QueueLimit = 0                  // Don't queue requests, reject immediately
+                        QueueLimit = 0
                     });
             });
 
-            // When rate limit exceeded, return this message
             options.OnRejected = async (context, cancellationToken) =>
             {
                 context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-                await context.HttpContext.Response.WriteAsync(
-                    "Too many requests. Please try again later.",
+                context.HttpContext.Response.Headers["Retry-After"] = "60";
+                await context.HttpContext.Response.WriteAsJsonAsync(
+                    new { error = "Too many requests. Please try again later." },
                     cancellationToken
                 );
             };

@@ -13,21 +13,127 @@ window.THREE = THREE;
 (function() {
   'use strict';
 
-  // Game state
+  // ============================================
+  // GAME CONFIGURATION - Enterprise Settings
+  // ============================================
+  const CONFIG = {
+    // Zombie Settings
+    ZOMBIE: {
+      SCALE: 12.0,                  // Zombie size multiplier
+      SPAWN_INTERVAL: 1000,         // Milliseconds between spawns
+      SPAWN_DISTANCE: -90,          // Z position where zombies spawn
+      CLEANUP_DISTANCE: 28,         // Z position where zombies are removed
+      BASE_SPEED: 0.1,              // Units per frame
+      SPEED_MULTIPLIER_THRESHOLD: 5, // Score threshold for speed increase
+      SPEED_MULTIPLIER: 5,          // Speed multiplier after threshold
+      RUN_ANIMATION_THRESHOLD: 5,   // Score threshold to switch to run animation
+      MULTI_SPAWN_THRESHOLD: 15,    // Score threshold for multiple spawns
+      MAX_ZOMBIES: 50,              // Maximum zombies allowed at once (more intense gameplay!)
+      MAX_MULTI_SPAWN: 3,           // Maximum additional zombies per spawn cycle
+      BRIGHTNESS_MULTIPLIER: 1.5,   // Material brightness adjustment
+      SPAWN_RANGE_X: 80,            // Random X spawn range
+      GROUND_OFFSET: 2.5            // Vertical offset to place feet on ground
+    },
+
+    // Orb Settings
+    ORB: {
+      SCALE: 2.5,                   // Orb size multiplier
+      ORBIT_RADIUS: 0.5,            // Distance from cursor
+      ORBIT_SPEED: 0.3,             // Rotation speed
+      COLLISION_RADIUS: 12.0,       // Collision detection radius (increased for better hit detection)
+      THROW_SPEED: 0.08,            // Animation speed (increased for more impact)
+      RETURN_SPEED_MULTIPLIER: 1.5, // Return faster than throw
+      ARC_HEIGHT: 15.0,             // Throw arc height (critical for hitting zombies)
+      TRAIL_SPAWN_CHANCE: 0.5       // Probability of spawning trail particle (increased for more visual)
+    },
+
+    // Camera Settings
+    CAMERA: {
+      FOV: 60,                      // Field of view
+      POSITION: { x: 0, y: 15, z: 20 }, // Camera location
+      LOOKAT: { x: 0, y: 0, z: -45 },   // Camera target
+      SHAKE_INTENSITY: 0.3,         // Shake strength on zombie kill
+      SHAKE_DURATION: 0.2           // Shake duration in seconds
+    },
+
+    // Particle Effects
+    PARTICLES: {
+      HIT_COUNT: 50,                // Number of particles per hit (increased for more impact)
+      HIT_SPEED_MIN: 0.5,           // Minimum particle velocity (faster for explosion effect)
+      HIT_SPEED_MAX: 1.5,           // Maximum particle velocity (faster for explosion effect)
+      HIT_SIZE: 0.3,                // Particle sphere size
+      LIFE_DECAY_RATE: 2,           // How fast particles fade (multiplier)
+      GRAVITY: 0.02,                // Particle gravity
+      TRAIL_SIZE: 0.15,             // Orb trail particle size
+      TRAIL_LIFE: 0.5               // Orb trail lifetime
+    },
+
+    // Effects & Polish
+    EFFECTS: {
+      SLOW_MOTION_DURATION: 150,    // Milliseconds
+      SLOW_MOTION_SCALE: 0.3,       // Time scale (30% speed)
+      FLASH_OPACITY: 0.3,           // Screen flash intensity
+      FLASH_DURATION: 50,           // Screen flash duration (ms)
+      GLOW_DURATION: 150,           // Zombie hit glow duration (ms)
+      GLOW_INTENSITY: 0.8           // Zombie hit glow brightness
+    },
+
+    // Scoring
+    SCORING: {
+      KILL_POINTS: 2,               // Points for killing zombie
+      ESCAPE_PENALTY: -1            // Points lost when zombie escapes
+    },
+
+    // Lighting
+    LIGHTING: {
+      AMBIENT_INTENSITY: 2.0,       // Overall scene brightness
+      DIRECTIONAL_INTENSITY: 2.0,   // Main light intensity
+      FRONT_LIGHT_INTENSITY: 1.2,   // Camera-facing light
+      BACK_LIGHT_INTENSITY: 0.5,    // Atmospheric back light
+      ORB_LIGHT_ICE: 3,            // Ice orb point light
+      ORB_LIGHT_FIRE: 3.5,         // Fire orb point light
+      ORB_LIGHT_ELECTRIC: 3.2      // Electric orb point light
+    },
+
+    // Scene
+    SCENE: {
+      BACKGROUND_COLOR: 0x0a1628,   // Dark blue background
+      GROUND_WIDTH: 100,            // Ground plane width
+      GROUND_DEPTH: 250,            // Ground plane depth (extended)
+      GROUND_COLOR: 0x1a2332,       // Ground material color
+      GRID_SIZE: 250,               // Grid helper size
+      GRID_DIVISIONS: 100           // Grid helper divisions
+    },
+
+    // Performance
+    PERFORMANCE: {
+      ENABLE_SHADOWS: true,         // Enable shadow rendering
+      MAX_DELTA_TIME: 0.1,          // Clamp delta to prevent huge jumps
+      TARGET_FPS: 60                // Target frame rate
+    },
+
+    // Debug (set to false for production)
+    DEBUG: {
+      ENABLE_LOGGING: false,        // Console logging (DISABLED FOR PRODUCTION)
+      LOG_ZOMBIE_POSITION: false,   // Log zombie positions every 60 frames
+      LOG_COLLISION: false,         // Log collision events (DISABLED FOR PRODUCTION)
+      LOG_PERFORMANCE: false        // Log FPS and performance metrics
+    }
+  };
+
+  // ============================================
+  // GAME STATE
+  // ============================================
   let gameInitialized = false;
   let scene, camera, renderer;
   let orbs = { ice: null, fire: null, electric: null };
   let animationId;
   let cssOrbsHidden = false;
-  let zombieModel = null; // Loaded zombie model (TEMPLATE - never add to scene!)
-  let zombieAnimations = []; // Zombie animations from GLTF
-  let zombieTemplateReady = false; // Flag to indicate model is ready for cloning
-  let zombies = []; // Active zombie instances
-  let zombieSpawnTimer = 0; // Timer for spawning zombies
-  const ZOMBIE_SPAWN_INTERVAL = 1000; // Spawn every 3 seconds
-  const ZOMBIE_SPEED = 0.1; // Units per frame (adjusted to match walk animation)
-  const ZOMBIE_SPAWN_DISTANCE = -90; // Spawn 90 units away (3x the original 30)
-  const ZOMBIE_CLEANUP_DISTANCE = 28; // Cleanup when past camera
+  let zombieModel = null;
+  let zombieAnimations = [];
+  let zombieTemplateReady = false;
+  let zombies = [];
+  let zombieSpawnTimer = 0;
 
   // Scoring system
   let score = 0;
@@ -56,12 +162,154 @@ window.THREE = THREE;
   // Particle effects
   let particles = []; // Array of active particles for hit effects
 
+  // Particle pooling for performance
+  const particlePool = {
+    available: [],
+    maxSize: 100, // Maximum particles in pool
+
+    get() {
+      if (this.available.length > 0) {
+        return this.available.pop();
+      }
+      // Create new particle if pool is empty
+      const geometry = new THREE.SphereGeometry(CONFIG.PARTICLES.HIT_SIZE, 8, 8);
+      const material = new THREE.MeshBasicMaterial({
+        transparent: true,
+        opacity: 1.0
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      return { mesh, geometry, material };
+    },
+
+    release(particle) {
+      if (this.available.length < this.maxSize) {
+        // Reset particle state
+        particle.mesh.scale.set(1, 1, 1);
+        particle.material.opacity = 1.0;
+        particle.mesh.position.set(0, 0, 0);
+        scene.remove(particle.mesh);
+        this.available.push(particle);
+      } else {
+        // Pool is full, dispose of particle
+        scene.remove(particle.mesh);
+        particle.geometry.dispose();
+        particle.material.dispose();
+      }
+    },
+
+    clear() {
+      // Dispose all pooled particles
+      this.available.forEach(particle => {
+        particle.geometry.dispose();
+        particle.material.dispose();
+      });
+      this.available = [];
+    }
+  };
+
   // Camera effects
   let cameraShake = { active: false, intensity: 0, duration: 0 };
   let cameraOriginalPos = null;
 
   // Time effects
   let timeScale = 1.0; // Normal speed = 1.0, slow-motion = 0.3
+
+  // Performance monitoring
+  let performanceStats = {
+    fps: 0,
+    frameCount: 0,
+    lastTime: performance.now(),
+    updateInterval: 1000,
+    zombieCount: 0,
+    particleCount: 0
+  };
+
+  // ============================================
+  // PERFORMANCE MONITORING
+  // ============================================
+  function createPerformanceMonitor() {
+    if (!CONFIG.DEBUG.LOG_PERFORMANCE) return;
+
+    const monitor = document.createElement('div');
+    monitor.id = 'performance-monitor';
+    monitor.style.cssText = `
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      color: #0f0;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      padding: 10px;
+      border-radius: 5px;
+      z-index: 10000;
+      min-width: 150px;
+    `;
+    monitor.innerHTML = `
+      <div>FPS: <span id="perf-fps">--</span></div>
+      <div>Zombies: <span id="perf-zombies">0</span></div>
+      <div>Particles: <span id="perf-particles">0</span></div>
+      <div>Pool: <span id="perf-pool">0</span></div>
+    `;
+    document.body.appendChild(monitor);
+  }
+
+  function updatePerformanceStats(delta) {
+    if (!CONFIG.DEBUG.LOG_PERFORMANCE) return;
+
+    performanceStats.frameCount++;
+    const currentTime = performance.now();
+    const elapsed = currentTime - performanceStats.lastTime;
+
+    if (elapsed >= performanceStats.updateInterval) {
+      performanceStats.fps = Math.round((performanceStats.frameCount * 1000) / elapsed);
+      performanceStats.zombieCount = zombies.length;
+      performanceStats.particleCount = particles.length;
+
+      const fpsEl = document.getElementById('perf-fps');
+      const zombiesEl = document.getElementById('perf-zombies');
+      const particlesEl = document.getElementById('perf-particles');
+      const poolEl = document.getElementById('perf-pool');
+
+      if (fpsEl) {
+        fpsEl.textContent = performanceStats.fps;
+        if (performanceStats.fps >= 55) fpsEl.style.color = '#0f0';
+        else if (performanceStats.fps >= 30) fpsEl.style.color = '#ff0';
+        else fpsEl.style.color = '#f00';
+      }
+      if (zombiesEl) zombiesEl.textContent = performanceStats.zombieCount;
+      if (particlesEl) particlesEl.textContent = performanceStats.particleCount;
+      if (poolEl) poolEl.textContent = particlePool.available.length;
+
+      performanceStats.frameCount = 0;
+      performanceStats.lastTime = currentTime;
+    }
+  }
+
+  function showErrorMessage(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 0, 0, 0.9);
+      color: white;
+      padding: 20px 40px;
+      border-radius: 10px;
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      z-index: 10001;
+      text-align: center;
+    `;
+    errorDiv.innerHTML = `
+      <div style="font-weight: bold; margin-bottom: 10px;">⚠️ Game Error</div>
+      <div>${message}</div>
+      <div style="margin-top: 10px; font-size: 12px;">Check console for details</div>
+    `;
+    document.body.appendChild(errorDiv);
+    setTimeout(() => errorDiv.remove(), 5000);
+  }
 
   // ============================================
   // SCORING FUNCTIONS
@@ -91,7 +339,9 @@ window.THREE = THREE;
       zombieCountElement.textContent = zombies.length;
     }
 
-    console.log('[Game] Score:', score, '(', points > 0 ? '+' + points : points, ')');
+    if (CONFIG.DEBUG.ENABLE_LOGGING) {
+      console.log('[Game] Score:', score, '(', points > 0 ? '+' + points : points, ')');
+    }
   }
 
   function createScoreboard() {
@@ -106,7 +356,7 @@ window.THREE = THREE;
       <div class="zombie-count">Zombies: <span id="game-zombie-count">0</span></div>
     `;
     document.body.appendChild(scoreboard);
-    console.log('[Game] Scoreboard created');
+    if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Scoreboard created');
   }
 
   function createBackgroundEffects() {
@@ -123,13 +373,21 @@ window.THREE = THREE;
     ambientGlow.className = 'game-ambient-glow';
     document.body.appendChild(ambientGlow);
 
-    console.log('[Game] Background atmosphere effects created');
+    if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Background atmosphere effects created');
   }
 
   // ============================================
   // PARTICLE EFFECTS
   // ============================================
   function createHitParticles(position, orbType) {
+    // Limit total active particles for performance (increased for more epic effects!)
+    if (particles.length >= 400) {
+      if (CONFIG.DEBUG.ENABLE_LOGGING) {
+        console.log('[Game] Particle limit reached, skipping spawn');
+      }
+      return;
+    }
+
     // Colors based on orb type
     const colors = {
       ice: 0x00ccff,
@@ -138,51 +396,56 @@ window.THREE = THREE;
     };
 
     const color = colors[orbType] || 0xffffff;
-    const particleCount = 20;
+    const particleCount = CONFIG.PARTICLES.HIT_COUNT;
 
     for (let i = 0; i < particleCount; i++) {
-      // Create particle
-      const particleGeometry = new THREE.SphereGeometry(0.3, 8, 8);
-      const particleMaterial = new THREE.MeshBasicMaterial({
-        color: color,
-        transparent: true,
-        opacity: 1.0
-      });
-      const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+      // Get particle from pool
+      const particle = particlePool.get();
+
+      // Set color
+      particle.material.color.setHex(color);
+      particle.material.opacity = 1.0;
 
       // Position at hit point
-      particle.position.copy(position);
+      particle.mesh.position.copy(position);
 
       // Random velocity in all directions
-      const speed = 0.3 + Math.random() * 0.4;
+      const speed = CONFIG.PARTICLES.HIT_SPEED_MIN + Math.random() * (CONFIG.PARTICLES.HIT_SPEED_MAX - CONFIG.PARTICLES.HIT_SPEED_MIN);
       const velocity = new THREE.Vector3(
         (Math.random() - 0.5) * speed,
         Math.random() * speed * 1.5, // More upward
         (Math.random() - 0.5) * speed
       );
 
-      scene.add(particle);
+      scene.add(particle.mesh);
 
       // Store particle data
       particles.push({
-        mesh: particle,
+        mesh: particle.mesh,
         velocity: velocity,
         life: 1.0, // Life from 1.0 to 0.0
-        geometry: particleGeometry,
-        material: particleMaterial
+        geometry: particle.geometry,
+        material: particle.material,
+        pooled: true // Mark as pooled for proper cleanup
       });
     }
   }
 
-  function createScreenFlash() {
-    // Create a white flash overlay
+  function createScreenFlash(orbType = null) {
+    // Create a colored flash overlay based on orb type
+    const flashColors = {
+      ice: `rgba(0, 221, 255, ${CONFIG.EFFECTS.FLASH_OPACITY})`,
+      fire: `rgba(255, 119, 0, ${CONFIG.EFFECTS.FLASH_OPACITY})`,
+      electric: `rgba(153, 0, 221, ${CONFIG.EFFECTS.FLASH_OPACITY})`
+    };
+
     const flashDiv = document.createElement('div');
     flashDiv.style.position = 'fixed';
     flashDiv.style.top = '0';
     flashDiv.style.left = '0';
     flashDiv.style.width = '100vw';
     flashDiv.style.height = '100vh';
-    flashDiv.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+    flashDiv.style.backgroundColor = orbType ? flashColors[orbType] : `rgba(255, 255, 255, ${CONFIG.EFFECTS.FLASH_OPACITY})`;
     flashDiv.style.pointerEvents = 'none';
     flashDiv.style.zIndex = '9999';
     flashDiv.style.transition = 'opacity 0.1s ease-out';
@@ -192,7 +455,7 @@ window.THREE = THREE;
     setTimeout(() => {
       flashDiv.style.opacity = '0';
       setTimeout(() => flashDiv.remove(), 100);
-    }, 50);
+    }, CONFIG.EFFECTS.FLASH_DURATION);
   }
 
   function createZombieHitGlow(zombie) {
@@ -209,19 +472,19 @@ window.THREE = THREE;
             child.material.emissive = new THREE.Color();
           }
           child.material.emissive.setHex(0xff0000);
-          child.material.emissiveIntensity = 0.8; // Bright red flash
+          child.material.emissiveIntensity = CONFIG.EFFECTS.GLOW_INTENSITY;
 
           // Reset to original state after short delay
           setTimeout(() => {
             child.material.emissive.copy(originalEmissive);
             child.material.emissiveIntensity = originalIntensity;
-          }, 150);
+          }, CONFIG.EFFECTS.GLOW_DURATION);
         }
       }
     });
   }
 
-  function startCameraShake(intensity = 0.5, duration = 0.3) {
+  function startCameraShake(intensity = CONFIG.CAMERA.SHAKE_INTENSITY, duration = CONFIG.CAMERA.SHAKE_DURATION) {
     if (!cameraOriginalPos) {
       cameraOriginalPos = camera.position.clone();
     }
@@ -230,12 +493,69 @@ window.THREE = THREE;
     cameraShake.duration = duration;
   }
 
-  function triggerSlowMotion(duration = 150) {
+  function triggerSlowMotion(duration = CONFIG.EFFECTS.SLOW_MOTION_DURATION) {
     // Brief slow-motion effect
-    timeScale = 0.3; // 30% speed
+    timeScale = CONFIG.EFFECTS.SLOW_MOTION_SCALE;
     setTimeout(() => {
       timeScale = 1.0; // Back to normal
     }, duration);
+  }
+
+  function createExplosionRing(position, orbType) {
+    // Create expanding shockwave ring for dramatic impact
+    const colors = {
+      ice: 0x00ddff,
+      fire: 0xff7700,
+      electric: 0x9900dd
+    };
+
+    const color = colors[orbType] || 0xffffff;
+
+    // Create multiple rings for layered effect
+    for (let ringIndex = 0; ringIndex < 3; ringIndex++) {
+      const ringGeometry = new THREE.RingGeometry(0.1, 0.5, 32);
+      const ringMaterial = new THREE.MeshBasicMaterial({
+        color: color,
+        transparent: true,
+        opacity: 0.8 - ringIndex * 0.2,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending
+      });
+
+      const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+      ring.position.copy(position);
+      ring.rotation.x = Math.PI / 2; // Face upward
+      scene.add(ring);
+
+      // Animate ring expansion and fade
+      const startTime = Date.now();
+      const expansionSpeed = 15 + ringIndex * 5; // Different speeds for each ring
+      const lifetime = 500; // milliseconds
+
+      const animateRing = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = elapsed / lifetime;
+
+        if (progress < 1) {
+          // Expand ring
+          const scale = 1 + progress * expansionSpeed;
+          ring.scale.set(scale, scale, 1);
+
+          // Fade out
+          ringMaterial.opacity = (1 - progress) * (0.8 - ringIndex * 0.2);
+
+          requestAnimationFrame(animateRing);
+        } else {
+          // Remove ring
+          scene.remove(ring);
+          ringGeometry.dispose();
+          ringMaterial.dispose();
+        }
+      };
+
+      // Stagger ring animations
+      setTimeout(() => animateRing(), ringIndex * 50);
+    }
   }
 
   function createFloatingScore(position, points) {
@@ -321,11 +641,11 @@ window.THREE = THREE;
     // Find nearest available orb
     const nearest = findNearestOrb(clickX, clickY);
     if (!nearest) {
-      console.log('[Game] No available orbs to throw');
+      if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] No available orbs to throw');
       return;
     }
 
-    console.log('[Game] Throwing', nearest.name, 'orb');
+    if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Throwing', nearest.name, 'orb');
 
     // Store throw state
     thrownOrbs.push({
@@ -363,11 +683,11 @@ window.THREE = THREE;
 
     if (intersects.length > 0) {
       const clickWorldPos = intersects[0].point;
-      console.log('[Game] Click at:', clickWorldPos);
+      if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Click at:', clickWorldPos);
       throwOrb(clickX, clickY, clickWorldPos);
     } else {
       // Fallback: If no intersection, project ray to a fixed distance
-      console.log('[Game] No ground intersection, using fallback');
+      if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] No ground intersection, using fallback');
       const rayDirection = raycaster.ray.direction.clone();
       const distance = 50; // Fixed distance along ray
       const clickWorldPos = raycaster.ray.origin.clone().add(rayDirection.multiplyScalar(distance));
@@ -397,51 +717,48 @@ window.THREE = THREE;
   function initGame() {
     if (gameInitialized) return;
 
-    console.log('[Game] Initializing three.js scene...');
+    try {
+      if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Initializing three.js scene...');
 
-    const container = document.getElementById('game-canvas-container');
-    if (!container) {
-      console.error('[Game] Container not found');
-      return;
-    }
+      const container = document.getElementById('game-canvas-container');
+      if (!container) {
+        throw new Error('Game container not found');
+      }
 
-    // Create scoreboard UI
-    createScoreboard();
-    score = 0; // Reset score
-    updateScore(0); // Initialize display
+      // Create scoreboard UI
+      createScoreboard();
+      score = 0;
+      updateScore(0);
 
-    // Create background atmosphere elements
-    createBackgroundEffects();
+      // Create background atmosphere elements
+      createBackgroundEffects();
+
+      // Create performance monitor (if enabled)
+      createPerformanceMonitor();
 
     // Create scene
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a1628); // Match CSS background
+    scene.background = new THREE.Color(CONFIG.SCENE.BACKGROUND_COLOR);
 
-    // ====================================================================
-    // CAMERA SETUP - ADJUST THESE VALUES TO CHANGE VIEW
-    // ====================================================================
+    // Camera setup
     camera = new THREE.PerspectiveCamera(
-      60, // FOV - narrower = more zoomed in (try: 50-70)
+      CONFIG.CAMERA.FOV,
       window.innerWidth / window.innerHeight,
       0.1,
       1000
     );
 
-    // CAMERA POSITION - Where camera is located
-    // X: left(-) / right(+)
-    // Y: height (higher = more top-down view)
-    // Z: back(+) / forward(-)
+    // Camera position and orientation
     camera.position.set(
-      0,    // X: centered
-      15,   // Y: ADJUST THIS - higher = more top-down (try: 10-20)
-      20    // Z: ADJUST THIS - distance back from origin (try: 15-25)
+      CONFIG.CAMERA.POSITION.x,
+      CONFIG.CAMERA.POSITION.y,
+      CONFIG.CAMERA.POSITION.z
     );
 
-    // CAMERA LOOK AT - What point camera is looking at
     camera.lookAt(
-      0,    // X: center
-      0,    // Y: ground level
-      -45   // Z: look ahead where zombies spawn (3x original, negative = distance ahead)
+      CONFIG.CAMERA.LOOKAT.x,
+      CONFIG.CAMERA.LOOKAT.y,
+      CONFIG.CAMERA.LOOKAT.z
     );
 
     // Create renderer
@@ -451,7 +768,7 @@ window.THREE = THREE;
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.enabled = CONFIG.PERFORMANCE.ENABLE_SHADOWS;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
 
@@ -499,8 +816,14 @@ window.THREE = THREE;
     // Start animation loop
     animate();
 
-    gameInitialized = true;
-    console.log('[Game] Initialization complete!');
+      gameInitialized = true;
+      if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Initialization complete!');
+
+    } catch (error) {
+      console.error('[Game] Initialization failed:', error);
+      showErrorMessage('Failed to initialize game: ' + error.message);
+      cleanup();
+    }
   }
 
   // ============================================
@@ -523,56 +846,61 @@ window.THREE = THREE;
   // CREATE GROUND
   // ============================================
   function createGround() {
-    // Create a large ground plane (extended to 3x length)
-    const groundGeometry = new THREE.PlaneGeometry(100, 250); // Width 100, Depth 250 (extended)
+    // Create ground plane
+    const groundGeometry = new THREE.PlaneGeometry(CONFIG.SCENE.GROUND_WIDTH, CONFIG.SCENE.GROUND_DEPTH);
     const groundMaterial = new THREE.MeshStandardMaterial({
-      color: 0x1a2332, // Slightly lighter than background
+      color: CONFIG.SCENE.GROUND_COLOR,
       roughness: 0.8,
       metalness: 0.2,
       side: THREE.DoubleSide
     });
 
     const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-    ground.rotation.x = -Math.PI / 2; // Rotate to be horizontal
-    ground.position.y = 0; // Ground level
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = 0;
     ground.receiveShadow = true;
 
     scene.add(ground);
 
-    // Add a subtle grid helper to see depth (extended to 3x)
-    const gridHelper = new THREE.GridHelper(250, 100, 0x2a3444, 0x1a2332); // Size 250, 100 divisions
-    gridHelper.position.y = 0.01; // Slightly above ground to prevent z-fighting
+    // Grid helper for depth perception
+    const gridHelper = new THREE.GridHelper(
+      CONFIG.SCENE.GRID_SIZE,
+      CONFIG.SCENE.GRID_DIVISIONS,
+      0x2a3444,
+      0x1a2332
+    );
+    gridHelper.position.y = 0.01;
     scene.add(gridHelper);
 
-    console.log('[Game] Ground created');
+    if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Ground created');
   }
 
   // ============================================
   // SETUP LIGHTING
   // ============================================
   function setupLighting() {
-    // Ambient light (bright overall illumination to make zombies visible)
-    const ambientLight = new THREE.AmbientLight(0xffffff, 2.0); // Increased from 2.0 to 3.5
+    // Ambient light
+    const ambientLight = new THREE.AmbientLight(0xffffff, CONFIG.LIGHTING.AMBIENT_INTENSITY);
     scene.add(ambientLight);
 
-    // Main directional light (sun-like) - positioned to light the ground
-    const dirLight = new THREE.DirectionalLight(0xffffff, 2.0); // Increased from 1.5 to 2.0
-    dirLight.position.set(10, 20, -30); // Moved back to center of extended field
-    dirLight.castShadow = true;
+    // Main directional light
+    const dirLight = new THREE.DirectionalLight(0xffffff, CONFIG.LIGHTING.DIRECTIONAL_INTENSITY);
+    dirLight.position.set(10, 20, -30);
+    dirLight.castShadow = CONFIG.PERFORMANCE.ENABLE_SHADOWS;
     dirLight.shadow.camera.left = -50;
     dirLight.shadow.camera.right = 50;
-    dirLight.shadow.camera.top = 80;  // Extended to cover longer field
-    dirLight.shadow.camera.bottom = -80; // Extended to cover longer field
+    dirLight.shadow.camera.top = 80;
+    dirLight.shadow.camera.bottom = -80;
     scene.add(dirLight);
 
-    // Additional front light to illuminate zombies coming toward camera
-    const frontLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    frontLight.position.set(0, 15, 50); // From camera direction
+    // Front light to illuminate zombies
+    const frontLight = new THREE.DirectionalLight(0xffffff, CONFIG.LIGHTING.FRONT_LIGHT_INTENSITY);
+    frontLight.position.set(0, 15, 50);
     scene.add(frontLight);
 
-    // Additional lights for atmosphere
-    const backLight = new THREE.DirectionalLight(0x6ee7b7, 0.5); // Increased from 0.3
-    backLight.position.set(0, 10, -60); // Moved back to light extended playing field
+    // Atmospheric back light
+    const backLight = new THREE.DirectionalLight(0x6ee7b7, CONFIG.LIGHTING.BACK_LIGHT_INTENSITY);
+    backLight.position.set(0, 10, -60);
     scene.add(backLight);
   }
 
@@ -580,58 +908,58 @@ window.THREE = THREE;
   // CREATE 3D ORBS - True elemental orbs with effects
   // ============================================
   function createOrbs() {
-    console.log('[Game] Creating elemental orbs with effects...');
+    if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Creating elemental orbs with effects...');
 
     // === ICE ORB ===
     orbs.ice = new THREE.Group();
 
-    // Core sphere
+    // Core sphere - BIGGER and BRIGHTER
     const iceCore = new THREE.Mesh(
-      new THREE.SphereGeometry(0.2, 32, 32),
+      new THREE.SphereGeometry(0.35, 32, 32),  // Increased from 0.2 to 0.35
       new THREE.MeshPhysicalMaterial({
         color: 0xaaccff,
-        emissive: 0x00aaff,
-        emissiveIntensity: 1.0,
+        emissive: 0x00ccff,  // Brighter emissive
+        emissiveIntensity: 1.5,  // Increased from 1.0
         transparent: true,
-        opacity: 0.8,
+        opacity: 0.9,  // More opaque
         roughness: 0.1,
         metalness: 0.5
       })
     );
     orbs.ice.add(iceCore);
 
-    // Ice crystals floating around
+    // Ice crystals floating around - MORE and BIGGER
     const crystals = [];
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 12; i++) {  // Increased from 8 to 12
       const crystal = new THREE.Mesh(
-        new THREE.OctahedronGeometry(0.06, 0),
+        new THREE.OctahedronGeometry(0.1, 0),  // Increased from 0.06 to 0.1
         new THREE.MeshPhysicalMaterial({
           color: 0xccffff,
-          emissive: 0x00aaff,
-          emissiveIntensity: 0.5,
+          emissive: 0x00ddff,  // Brighter
+          emissiveIntensity: 0.8,  // Increased from 0.5
           transparent: true,
-          opacity: 0.7,
+          opacity: 0.9,  // More visible
           roughness: 0.0
         })
       );
-      const angle = (i / 8) * Math.PI * 2;
-      const radius = 0.35;
+      const angle = (i / 12) * Math.PI * 2;
+      const radius = 0.5;  // Increased from 0.35
       crystal.position.x = Math.cos(angle) * radius;
       crystal.position.y = Math.sin(angle) * radius;
-      crystal.position.z = Math.sin(angle * 2) * 0.2;
+      crystal.position.z = Math.sin(angle * 2) * 0.3;
       crystal.rotation.set(Math.random(), Math.random(), Math.random());
       orbs.ice.add(crystal);
       crystals.push(crystal);
     }
 
-    // Ice smoky aura (organic flowing shape)
-    const iceGlowGeo = new THREE.IcosahedronGeometry(0.5, 2);
+    // Ice smoky aura (organic flowing shape) - BIGGER
+    const iceGlowGeo = new THREE.IcosahedronGeometry(0.8, 2);  // Increased from 0.5
     const iceGlow = new THREE.Mesh(
       iceGlowGeo,
       new THREE.MeshBasicMaterial({
-        color: 0x00aaff,
+        color: 0x00ccff,  // Brighter
         transparent: true,
-        opacity: 0.12,
+        opacity: 0.2,  // More visible (was 0.12)
         side: THREE.BackSide,
         blending: THREE.AdditiveBlending,
         wireframe: false
@@ -639,14 +967,14 @@ window.THREE = THREE;
     );
     orbs.ice.add(iceGlow);
 
-    // Ice inner aura layer
-    const iceGlow2Geo = new THREE.IcosahedronGeometry(0.35, 2);
+    // Ice inner aura layer - BIGGER
+    const iceGlow2Geo = new THREE.IcosahedronGeometry(0.55, 2);  // Increased from 0.35
     const iceGlow2 = new THREE.Mesh(
       iceGlow2Geo,
       new THREE.MeshBasicMaterial({
-        color: 0x00ddff,
+        color: 0x00eeff,  // Brighter
         transparent: true,
-        opacity: 0.18,
+        opacity: 0.25,  // More visible (was 0.18)
         side: THREE.BackSide,
         blending: THREE.AdditiveBlending,
         wireframe: false
@@ -668,47 +996,47 @@ window.THREE = THREE;
     // === FIRE ORB ===
     orbs.fire = new THREE.Group();
 
-    // Fire core
+    // Fire core - BIGGER and BRIGHTER
     const fireCore = new THREE.Mesh(
-      new THREE.SphereGeometry(0.2, 32, 32),
+      new THREE.SphereGeometry(0.35, 32, 32),  // Increased from 0.2 to 0.35
       new THREE.MeshBasicMaterial({
-        color: 0xffaa00,
+        color: 0xffbb00,  // Brighter
         transparent: true,
-        opacity: 0.9
+        opacity: 0.95  // More visible
       })
     );
     orbs.fire.add(fireCore);
 
-    // Fire particles (small spheres)
+    // Fire particles (small spheres) - MORE and BIGGER
     const fireParticles = [];
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 30; i++) {  // Increased from 20 to 30
       const particle = new THREE.Mesh(
-        new THREE.SphereGeometry(0.03, 8, 8),
+        new THREE.SphereGeometry(0.05, 8, 8),  // Increased from 0.03 to 0.05
         new THREE.MeshBasicMaterial({
           color: i % 2 === 0 ? 0xff4400 : 0xff8800,
           transparent: true,
-          opacity: 0.8,
+          opacity: 0.9,  // More visible
           blending: THREE.AdditiveBlending
         })
       );
       const angle = Math.random() * Math.PI * 2;
-      const radius = 0.25 + Math.random() * 0.15;
+      const radius = 0.35 + Math.random() * 0.2;  // Larger radius
       particle.position.x = Math.cos(angle) * radius;
       particle.position.y = Math.sin(angle) * radius;
-      particle.position.z = (Math.random() - 0.5) * 0.3;
+      particle.position.z = (Math.random() - 0.5) * 0.4;
       particle.userData = { angle: angle, radius: radius, speed: 0.5 + Math.random() * 0.5 };
       orbs.fire.add(particle);
       fireParticles.push(particle);
     }
 
-    // Fire smoky aura (organic flowing shape)
-    const fireGlowGeo = new THREE.IcosahedronGeometry(0.55, 2);
+    // Fire smoky aura (organic flowing shape) - BIGGER
+    const fireGlowGeo = new THREE.IcosahedronGeometry(0.85, 2);  // Increased from 0.55
     const fireGlow = new THREE.Mesh(
       fireGlowGeo,
       new THREE.MeshBasicMaterial({
-        color: 0xff4400,
+        color: 0xff5500,  // Brighter
         transparent: true,
-        opacity: 0.15,
+        opacity: 0.22,  // More visible (was 0.15)
         side: THREE.BackSide,
         blending: THREE.AdditiveBlending,
         wireframe: false
@@ -716,14 +1044,14 @@ window.THREE = THREE;
     );
     orbs.fire.add(fireGlow);
 
-    // Fire inner aura layer
-    const fireGlow2Geo = new THREE.IcosahedronGeometry(0.4, 2);
+    // Fire inner aura layer - BIGGER
+    const fireGlow2Geo = new THREE.IcosahedronGeometry(0.6, 2);  // Increased from 0.4
     const fireGlow2 = new THREE.Mesh(
       fireGlow2Geo,
       new THREE.MeshBasicMaterial({
-        color: 0xff7700,
+        color: 0xff8800,  // Brighter
         transparent: true,
-        opacity: 0.2,
+        opacity: 0.28,  // More visible (was 0.2)
         side: THREE.BackSide,
         blending: THREE.AdditiveBlending,
         wireframe: false
@@ -745,27 +1073,27 @@ window.THREE = THREE;
     // === ELECTRIC ORB ===
     orbs.electric = new THREE.Group();
 
-    // Electric core (darker purple)
+    // Electric core - BIGGER and BRIGHTER
     const electricCore = new THREE.Mesh(
-      new THREE.SphereGeometry(0.18, 32, 32),
+      new THREE.SphereGeometry(0.32, 32, 32),  // Increased from 0.18 to 0.32
       new THREE.MeshBasicMaterial({
-        color: 0x8800cc,
+        color: 0x9900dd,  // Brighter purple
         transparent: true,
         opacity: 1.0
       })
     );
     orbs.electric.add(electricCore);
 
-    // Lightning arcs (lines) - darker purple
+    // Lightning arcs (lines) - MORE and BIGGER arcs
     const arcs = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 10; i++) {  // Increased from 6 to 10
       const points = [];
-      const segments = 8;
+      const segments = 10;  // More segments for smoother arcs
       for (let j = 0; j <= segments; j++) {
         const t = j / segments;
         const angle1 = Math.random() * Math.PI * 2;
         const angle2 = Math.random() * Math.PI * 2;
-        const radius = 0.25 + Math.random() * 0.1;
+        const radius = 0.4 + Math.random() * 0.15;  // Larger radius (was 0.25 + 0.1)
         points.push(new THREE.Vector3(
           Math.cos(angle1) * radius * t,
           Math.sin(angle1) * radius * t,
@@ -774,24 +1102,24 @@ window.THREE = THREE;
       }
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
       const material = new THREE.LineBasicMaterial({
-        color: 0x6600aa,
+        color: 0x7700cc,  // Brighter
         transparent: true,
-        opacity: 0.8,
-        linewidth: 2
+        opacity: 0.9,  // More visible (was 0.8)
+        linewidth: 3  // Thicker
       });
       const arc = new THREE.Line(geometry, material);
       orbs.electric.add(arc);
       arcs.push({ line: arc, points: points });
     }
 
-    // Electric smoky aura (organic flowing shape)
-    const electricGlowGeo = new THREE.IcosahedronGeometry(0.5, 2);
+    // Electric smoky aura (organic flowing shape) - BIGGER
+    const electricGlowGeo = new THREE.IcosahedronGeometry(0.8, 2);  // Increased from 0.5
     const electricGlow = new THREE.Mesh(
       electricGlowGeo,
       new THREE.MeshBasicMaterial({
-        color: 0x5500aa,
+        color: 0x6600bb,  // Brighter
         transparent: true,
-        opacity: 0.15,
+        opacity: 0.22,  // More visible (was 0.15)
         side: THREE.BackSide,
         blending: THREE.AdditiveBlending,
         wireframe: false
@@ -799,14 +1127,14 @@ window.THREE = THREE;
     );
     orbs.electric.add(electricGlow);
 
-    // Electric inner aura layer
-    const electricGlow2Geo = new THREE.IcosahedronGeometry(0.35, 2);
+    // Electric inner aura layer - BIGGER
+    const electricGlow2Geo = new THREE.IcosahedronGeometry(0.55, 2);  // Increased from 0.35
     const electricGlow2 = new THREE.Mesh(
       electricGlow2Geo,
       new THREE.MeshBasicMaterial({
-        color: 0x7700cc,
+        color: 0x8800dd,  // Brighter
         transparent: true,
-        opacity: 0.18,
+        opacity: 0.25,  // More visible (was 0.18)
         side: THREE.BackSide,
         blending: THREE.AdditiveBlending,
         wireframe: false
@@ -825,19 +1153,19 @@ window.THREE = THREE;
     orbs.electric.scale.set(2.5, 2.5, 2.5); // Make orb bigger
     scene.add(orbs.electric);
 
-    // Add point lights with darker electric color (scaled intensity for bigger orbs)
-    orbs.ice.add(new THREE.PointLight(0x00ccff, 3, 10));
-    orbs.fire.add(new THREE.PointLight(0xff6600, 3.5, 10));
-    orbs.electric.add(new THREE.PointLight(0x8800cc, 3.2, 10));
+    // Add point lights
+    orbs.ice.add(new THREE.PointLight(0x00ccff, CONFIG.LIGHTING.ORB_LIGHT_ICE, 10));
+    orbs.fire.add(new THREE.PointLight(0xff6600, CONFIG.LIGHTING.ORB_LIGHT_FIRE, 10));
+    orbs.electric.add(new THREE.PointLight(0x8800cc, CONFIG.LIGHTING.ORB_LIGHT_ELECTRIC, 10));
 
-    console.log('[Game] Elemental orbs with effects created!');
+    if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Elemental orbs with effects created!');
   }
 
   // ============================================
   // LOAD ZOMBIE MODEL
   // ============================================
   function loadZombieModel() {
-    console.log('[Game] Loading zombie model...');
+    if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Loading zombie model...');
 
     const loader = new GLTFLoader();
     loader.load(
@@ -847,24 +1175,28 @@ window.THREE = THREE;
         zombieAnimations = gltf.animations; // Store animations
 
         // Debug: Check zombie model size
-        const box = new THREE.Box3().setFromObject(zombieModel);
-        const size = new THREE.Vector3();
-        box.getSize(size);
-        console.log('[Game] Zombie model loaded successfully!');
-        console.log('[Game] Zombie model size:', size);
-        console.log('[Game] Zombie bounding box:', box);
-        console.log('[Game] Zombie animations:', zombieAnimations.length, 'found');
+        if (CONFIG.DEBUG.ENABLE_LOGGING) {
+          const box = new THREE.Box3().setFromObject(zombieModel);
+          const size = new THREE.Vector3();
+          box.getSize(size);
+          console.log('[Game] Zombie model loaded successfully!');
+          console.log('[Game] Zombie model size:', size);
+          console.log('[Game] Zombie bounding box:', box);
+          console.log('[Game] Zombie animations:', zombieAnimations.length, 'found');
+        }
 
         // Mark template as ready for cloning
         zombieTemplateReady = true;
-        console.log('[Game] Zombie template ready for spawning!');
+        if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Zombie template ready for spawning!');
 
-        // Spawn first zombie immediately (as a clone, not the original!)
-        spawnZombie(); // This will use the default parameter (useOriginal = false) to clone
-        console.log('[Game] Initial zombie spawned');
+        // Spawn first zombie immediately
+        spawnZombie();
+        if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Initial zombie spawned');
       },
       (progress) => {
-        console.log('[Game] Loading zombie:', (progress.loaded / progress.total * 100).toFixed(2) + '%');
+        if (CONFIG.DEBUG.ENABLE_LOGGING) {
+          console.log('[Game] Loading zombie:', (progress.loaded / progress.total * 100).toFixed(2) + '%');
+        }
       },
       (error) => {
         console.error('[Game] Error loading zombie model:', error);
@@ -883,37 +1215,36 @@ window.THREE = THREE;
 
     // Use original model or clone it properly (SkeletonUtils for animated characters)
     const zombie = useOriginal ? zombieModel : SkeletonUtils.clone(zombieModel);
-    console.log('[Game] Using', useOriginal ? 'ORIGINAL' : 'CLONED', 'zombie model');
-    console.log('[Game] Zombie children count:', zombie.children.length);
+    if (CONFIG.DEBUG.ENABLE_LOGGING) {
+      console.log('[Game] Using', useOriginal ? 'ORIGINAL' : 'CLONED', 'zombie model');
+      console.log('[Game] Zombie children count:', zombie.children.length);
+    }
 
-    // ====================================================================
-    // ZOMBIE SETUP - ADJUST THESE VALUES
-    // ====================================================================
-    const zombieScale = 12.0;        // ADJUST: Size of zombie (try: 8-12)
-    const zombieSpawnZ = -90;        // ADJUST: How far away zombie spawns (3x original distance)
-    const zombieSpawnRangeX = 80;     // ADJUST: Random left/right range (try: 2-6)
+    // Zombie setup using CONFIG
+    const zombieScale = CONFIG.ZOMBIE.SCALE;
+    const zombieSpawnZ = CONFIG.ZOMBIE.SPAWN_DISTANCE;
+    const zombieSpawnRangeX = CONFIG.ZOMBIE.SPAWN_RANGE_X;
 
-    const randomX = (Math.random() - 0.5) * zombieSpawnRangeX; // Random X position
+    const randomX = (Math.random() - 0.5) * zombieSpawnRangeX;
 
     // Scale and rotate zombie
     zombie.scale.set(zombieScale, zombieScale, zombieScale);
-    zombie.rotation.set(0, 0, -0.2); // Ensure perfectly upright
-
-    // Temporarily position at origin to measure bounding box
-    // zombie.position.set(0, 0, 0);
+    zombie.rotation.set(0, 0, -0.2);
 
     // Calculate bounding box to find where feet are
     zombie.updateMatrixWorld(true);
     const bbox = new THREE.Box3().setFromObject(zombie);
-    const minY = bbox.min.y+2.5; // Lowest point (feet)
+    const minY = bbox.min.y + CONFIG.ZOMBIE.GROUND_OFFSET;
 
     // Position zombie with feet on ground (Y=0)
     const groundOffset = -minY;
     zombie.position.set(randomX, groundOffset, zombieSpawnZ);
 
-    console.log('[Game] Zombie scale:', zombieScale);
-    console.log('[Game] Zombie spawn Z:', zombieSpawnZ);
-    console.log('[Game] Ground offset:', groundOffset.toFixed(2));
+    if (CONFIG.DEBUG.ENABLE_LOGGING) {
+      console.log('[Game] Zombie scale:', zombieScale);
+      console.log('[Game] Zombie spawn Z:', zombieSpawnZ);
+      console.log('[Game] Ground offset:', groundOffset.toFixed(2));
+    }
 
     // Force all children to be visible and clone materials if needed
     zombie.traverse((child) => {
@@ -921,7 +1252,9 @@ window.THREE = THREE;
       child.frustumCulled = false;
 
       if (child.isMesh || child.isSkinnedMesh) {
-        console.log('[Game] Mesh found:', child.name, 'Type:', child.type, 'Material:', child.material ? 'YES' : 'NO');
+        if (CONFIG.DEBUG.ENABLE_LOGGING) {
+          console.log('[Game] Mesh found:', child.name, 'Type:', child.type, 'Material:', child.material ? 'YES' : 'NO');
+        }
 
         // Clone materials only if we cloned the model
         if (!useOriginal && child.material) {
@@ -930,9 +1263,9 @@ window.THREE = THREE;
               const clonedMat = mat.clone();
               clonedMat.side = THREE.DoubleSide;
 
-              // BRIGHTEN ZOMBIE: Make naturally brighter (no glow, just brighter colors)
+              // Brighten zombie materials
               if (clonedMat.color) {
-                clonedMat.color.multiplyScalar(1.2); // Much brighter base color
+                clonedMat.color.multiplyScalar(CONFIG.ZOMBIE.BRIGHTNESS_MULTIPLIER);
               }
 
               clonedMat.needsUpdate = true;
@@ -942,14 +1275,14 @@ window.THREE = THREE;
             child.material = child.material.clone();
             child.material.side = THREE.DoubleSide;
 
-            // BRIGHTEN ZOMBIE: Make naturally brighter (no glow, just brighter colors)
+            // Brighten zombie materials
             if (child.material.color) {
-              child.material.color.multiplyScalar(1.5); // Much brighter base color
+              child.material.color.multiplyScalar(CONFIG.ZOMBIE.BRIGHTNESS_MULTIPLIER);
             }
 
             child.material.needsUpdate = true;
           }
-          console.log('[Game] Material cloned and brightened for:', child.name);
+          if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Material cloned and brightened for:', child.name);
         }
 
         // Enable shadows for zombie meshes
@@ -1068,21 +1401,25 @@ window.THREE = THREE;
 
     const zombieData = {
       mesh: zombie,
-      mixer: mixer, // Store mixer to update each frame
+      mixer: mixer,
       health: 100,
-      speed: ZOMBIE_SPEED,
+      speed: CONFIG.ZOMBIE.BASE_SPEED,
       isDying: false,
       deathTimer: 0
     };
-    if(score>=5)zombieData.speed*=5; // Increase speed after 5 points
+    if(score >= CONFIG.ZOMBIE.SPEED_MULTIPLIER_THRESHOLD) {
+      zombieData.speed *= CONFIG.ZOMBIE.SPEED_MULTIPLIER;
+    }
     zombies.push(zombieData);
 
-    console.log('🧟 [Game] ===== ZOMBIE SPAWNED =====');
-    console.log('[Game] Position:', zombie.position);
-    console.log('[Game] Scale:', zombieScale);
-    console.log('[Game] Visible:', zombie.visible);
-    console.log('[Game] In scene:', scene.children.includes(zombie));
-    console.log('[Game] Total zombies:', zombies.length);
+    if (CONFIG.DEBUG.ENABLE_LOGGING) {
+      console.log('🧟 [Game] ===== ZOMBIE SPAWNED =====');
+      console.log('[Game] Position:', zombie.position);
+      console.log('[Game] Scale:', zombieScale);
+      console.log('[Game] Visible:', zombie.visible);
+      console.log('[Game] In scene:', scene.children.includes(zombie));
+      console.log('[Game] Total zombies:', zombies.length);
+    }
 
     // Update zombie count display
     updateScore(0);
@@ -1092,7 +1429,7 @@ window.THREE = THREE;
   // HANDOFF FROM CSS TO THREE.JS
   // ============================================
   function handoffOrbs() {
-    console.log('[Game] Performing 2D→3D handoff...');
+    if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Performing 2D→3D handoff...');
 
     // Hide CSS orbs with smooth fade
     const cssOrbContainer = document.querySelector('.orb-container');
@@ -1113,7 +1450,7 @@ window.THREE = THREE;
     setTimeout(() => animateOrbScale(orbs.fire, 0), 100);
     setTimeout(() => animateOrbScale(orbs.electric, 0), 200);
 
-    console.log('[Game] Handoff complete!');
+    if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Handoff complete!');
   }
 
   // Vanilla JS scale animation (bounce effect)
@@ -1145,11 +1482,15 @@ window.THREE = THREE;
   function animate() {
     animationId = requestAnimationFrame(animate);
 
-    // Get delta time for smooth animations
-    let delta = clock.getDelta();
+    try {
+      // Get delta time for smooth animations
+      let delta = clock.getDelta();
 
-    // Apply time scale for slow-motion effect
-    delta *= timeScale;
+      // Apply time scale for slow-motion effect
+      delta *= timeScale;
+
+      // Update performance stats
+      updatePerformanceStats(delta);
 
     // ============================================
     // CAMERA SHAKE EFFECT
@@ -1215,27 +1556,26 @@ window.THREE = THREE;
         const t = Math.min(thrown.progress, 1);
         const easeT = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
-        // Lerp position from start to target with HIGH arc
-        // Zombie is 20 units tall when scaled 10x, so arc must be at least 15-20 units!
-        const arcHeight = 15.0; // High enough to hit zombie head at 19-20 units
+        // Lerp position from start to target with high arc
+        const arcHeight = CONFIG.ORB.ARC_HEIGHT;
 
         thrown.orb.position.x = thrown.startPos.x + (thrown.targetPos.x - thrown.startPos.x) * easeT;
         thrown.orb.position.y = thrown.startPos.y + (thrown.targetPos.y - thrown.startPos.y) * easeT + Math.sin(easeT * Math.PI) * arcHeight;
         thrown.orb.position.z = thrown.startPos.z + (thrown.targetPos.z - thrown.startPos.z) * easeT;
 
-        // Create trail particles behind orb
-        if (Math.random() < 0.3) { // 30% chance each frame
+        // Create trail particles behind orb - BIGGER and BRIGHTER
+        if (Math.random() < CONFIG.ORB.TRAIL_SPAWN_CHANCE) {
           const colors = {
-            ice: 0x00ccff,
-            fire: 0xff6600,
-            electric: 0x8800cc
+            ice: 0x00ddff,    // Brighter
+            fire: 0xff7700,   // Brighter
+            electric: 0x9900dd // Brighter
           };
 
-          const trailGeometry = new THREE.SphereGeometry(0.15, 8, 8);
+          const trailGeometry = new THREE.SphereGeometry(0.25, 8, 8);  // Increased from 0.15 to 0.25
           const trailMaterial = new THREE.MeshBasicMaterial({
             color: colors[thrown.type] || 0xffffff,
             transparent: true,
-            opacity: 0.6
+            opacity: 0.8  // More visible (was 0.6)
           });
           const trail = new THREE.Mesh(trailGeometry, trailMaterial);
           trail.position.copy(thrown.orb.position);
@@ -1252,9 +1592,9 @@ window.THREE = THREE;
         // ============================================
         // COLLISION DETECTION WITH ZOMBIES
         // ============================================
-        // Simple, efficient sphere-to-box collision (industry standard)
+        // Efficient sphere-to-box collision
         const orbPos = thrown.orb.position;
-        const orbRadius = 6.0; // Orb collision radius
+        const orbRadius = CONFIG.ORB.COLLISION_RADIUS;
 
         // Check if orb has already registered a hit
         if (!thrown.hasHit) {
@@ -1279,7 +1619,9 @@ window.THREE = THREE;
             const isHit = distance <= orbRadius;
 
             if (isHit) {
-              console.log('🎯 [Game] HIT! Zombie hit by', thrown.type, 'orb at distance:', distance.toFixed(2));
+              if (CONFIG.DEBUG.LOG_COLLISION) {
+                console.log('🎯 [Game] HIT! Zombie hit by', thrown.type, 'orb at distance:', distance.toFixed(2));
+              }
 
               // Mark this throw as having hit something
               thrown.hasHit = true;
@@ -1288,15 +1630,22 @@ window.THREE = THREE;
               const hitPoint = orbPos.clone();
               createHitParticles(hitPoint, thrown.type);
 
-              // Screen flash effect
-              createScreenFlash();
+              // DRAMATIC IMPACT EFFECTS
+              // Explosion shockwave rings
+              createExplosionRing(hitPoint, thrown.type);
+
+              // Camera shake for impact
+              startCameraShake(CONFIG.CAMERA.SHAKE_INTENSITY, CONFIG.CAMERA.SHAKE_DURATION);
+
+              // Screen flash effect (colored by orb type)
+              createScreenFlash(thrown.type);
 
               // Make zombie glow on hit
               createZombieHitGlow(zombie);
 
               // Reduce zombie health (100 damage = 1-hit kill)
               zombieData.health -= 100;
-              console.log('[Game] Zombie health:', zombieData.health);
+              if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Zombie health:', zombieData.health);
 
               // Visual feedback - flash the score
               const scoreElement = document.getElementById('game-score');
@@ -1309,10 +1658,10 @@ window.THREE = THREE;
 
               // Check if zombie is dead
               if (zombieData.health <= 0) {
-                console.log('💀 [Game] Zombie killed!');
+                if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('💀 [Game] Zombie killed!');
 
                 // Award points for kill
-                updateScore(+2);
+                updateScore(CONFIG.SCORING.KILL_POINTS);
 
                 // Get zombie center for popup
                 zombie.updateMatrixWorld(true);
@@ -1349,14 +1698,18 @@ window.THREE = THREE;
                     deathAction.reset();
                     deathAction.play();
 
-                    console.log('[Game] Playing death animation:', deathAnim.name, 'Duration:', deathAnim.duration.toFixed(2) + 's');
+                    if (CONFIG.DEBUG.ENABLE_LOGGING) {
+                      console.log('[Game] Playing death animation:', deathAnim.name, 'Duration:', deathAnim.duration.toFixed(2) + 's');
+                    }
                   } else {
                     console.warn('[Game] No death animation found');
                   }
                 }
               } else {
                 // Hit but not dead - zombie flinches
-                console.log('[Game] Zombie damaged! Health remaining:', zombieData.health);
+                if (CONFIG.DEBUG.ENABLE_LOGGING) {
+                  console.log('[Game] Zombie damaged! Health remaining:', zombieData.health);
+                }
               }
 
               // Start orb return immediately
@@ -1371,7 +1724,9 @@ window.THREE = THREE;
 
         // Check if throw reached target (no hit)
         if (thrown.progress >= 1 && thrown.returnStart === null) {
-          console.log('[Game]', thrown.type, 'orb reached target, starting return');
+          if (CONFIG.DEBUG.ENABLE_LOGGING) {
+            console.log('[Game]', thrown.type, 'orb reached target, starting return');
+          }
           thrown.returnStart = thrown.orb.position.clone();
           thrown.progress = 0;
         }
@@ -1391,7 +1746,9 @@ window.THREE = THREE;
 
         // Check if return completed
         if (thrown.progress >= 1) {
-          console.log('[Game]', thrown.type, 'orb returned to orbit');
+          if (CONFIG.DEBUG.ENABLE_LOGGING) {
+            console.log('[Game]', thrown.type, 'orb returned to orbit');
+          }
           thrownOrbs.splice(i, 1); // Remove from thrown list
         }
       }
@@ -1518,10 +1875,10 @@ window.THREE = THREE;
       particle.mesh.position.add(particle.velocity);
 
       // Apply gravity
-      particle.velocity.y -= 0.02;
+      particle.velocity.y -= CONFIG.PARTICLES.GRAVITY;
 
       // Fade out
-      particle.life -= delta * 2; // Life decreases over time
+      particle.life -= delta * CONFIG.PARTICLES.LIFE_DECAY_RATE;
       particle.material.opacity = Math.max(0, particle.life);
 
       // Shrink over time
@@ -1530,9 +1887,15 @@ window.THREE = THREE;
 
       // Remove dead particles
       if (particle.life <= 0) {
-        scene.remove(particle.mesh);
-        particle.geometry.dispose();
-        particle.material.dispose();
+        if (particle.pooled) {
+          // Return to pool
+          particlePool.release(particle);
+        } else {
+          // Old-style cleanup (for trail particles)
+          scene.remove(particle.mesh);
+          if (particle.geometry) particle.geometry.dispose();
+          if (particle.material) particle.material.dispose();
+        }
         particles.splice(i, 1);
       }
     }
@@ -1565,14 +1928,27 @@ window.THREE = THREE;
     // ============================================
     // Update spawn timer (delta is in seconds, convert to ms)
     zombieSpawnTimer += delta * 1000;
-    if (zombieSpawnTimer >= ZOMBIE_SPAWN_INTERVAL && zombieTemplateReady) {
-      
-      spawnZombie(); // Spawn cloned zombie (always uses clone, never original)
-      if(score>=15){
-        for(let i=0;i<score/5;i++)spawnZombie(); 
+    if (zombieSpawnTimer >= CONFIG.ZOMBIE.SPAWN_INTERVAL && zombieTemplateReady) {
+      // Only spawn if below max zombie count
+      if (zombies.length < CONFIG.ZOMBIE.MAX_ZOMBIES) {
+        spawnZombie();
+
+        // Multi-spawn after threshold, but capped
+        if(score >= CONFIG.ZOMBIE.MULTI_SPAWN_THRESHOLD && zombies.length < CONFIG.ZOMBIE.MAX_ZOMBIES){
+          const additionalSpawns = Math.min(
+            Math.floor(score / 10), // Scale with score
+            CONFIG.ZOMBIE.MAX_MULTI_SPAWN, // Cap at max
+            CONFIG.ZOMBIE.MAX_ZOMBIES - zombies.length // Don't exceed max zombies
+          );
+          for(let i = 0; i < additionalSpawns; i++) {
+            if (zombies.length < CONFIG.ZOMBIE.MAX_ZOMBIES) {
+              spawnZombie();
+            }
+          }
+        }
       }
       zombieSpawnTimer = 0;
-      console.log('[Game] Auto-spawned zombie. Total:', zombies.length);
+      if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Auto-spawned zombie. Total:', zombies.length);
     }
 
     // Move zombies towards camera and cleanup
@@ -1580,10 +1956,9 @@ window.THREE = THREE;
       const zombieData = zombies[i];
       const zombie = zombieData.mesh;
 
-      // Update animation mixer with actual delta time (smooth animation!)
+      // Update animation mixer with clamped delta time
       if (zombieData.mixer) {
-        // Clamp delta to avoid huge jumps (e.g., when tab is inactive)
-        const clampedDelta = Math.min(delta, 0.1);
+        const clampedDelta = Math.min(delta, CONFIG.PERFORMANCE.MAX_DELTA_TIME);
         zombieData.mixer.update(clampedDelta);
       }
 
@@ -1593,7 +1968,7 @@ window.THREE = THREE;
 
         // Remove zombie after death animation (2 seconds)
         if (zombieData.deathTimer > 2.0) {
-          console.log('[Game] Removing dead zombie');
+          if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Removing dead zombie');
 
           // Remove from scene
           scene.remove(zombie);
@@ -1622,19 +1997,23 @@ window.THREE = THREE;
       const oldZ = zombie.position.z;
       zombie.position.z += zombieData.speed;
 
-      // Log zombie position every 60 frames (about once per second)
-      if (!zombieData.logCounter) zombieData.logCounter = 0;
-      zombieData.logCounter++;
-      if (zombieData.logCounter % 60 === 0) {
-        console.log(`🧟 Zombie #${i} at Z=${zombie.position.z.toFixed(2)} (moving ${zombieData.speed.toFixed(2)}/frame)`);
+      // Log zombie position periodically (debug only)
+      if (CONFIG.DEBUG.LOG_ZOMBIE_POSITION) {
+        if (!zombieData.logCounter) zombieData.logCounter = 0;
+        zombieData.logCounter++;
+        if (zombieData.logCounter % 60 === 0) {
+          console.log(`🧟 Zombie #${i} at Z=${zombie.position.z.toFixed(2)} (moving ${zombieData.speed.toFixed(2)}/frame)`);
+        }
       }
 
       // Cleanup if zombie passed the camera
-      if (zombie.position.z > ZOMBIE_CLEANUP_DISTANCE) {
-        console.log('❌ [Game] Zombie escaped! Crossed border at Z=' + zombie.position.z.toFixed(2));
+      if (zombie.position.z > CONFIG.ZOMBIE.CLEANUP_DISTANCE) {
+        if (CONFIG.DEBUG.ENABLE_LOGGING) {
+          console.log('❌ [Game] Zombie escaped! Crossed border at Z=' + zombie.position.z.toFixed(2));
+        }
 
-        // PENALTY: Zombie escaped! -1 point
-        updateScore(-1);
+        // Penalty: Zombie escaped
+        updateScore(CONFIG.SCORING.ESCAPE_PENALTY);
 
         scene.remove(zombie);
 
@@ -1654,7 +2033,14 @@ window.THREE = THREE;
       }
     }
 
-    renderer.render(scene, camera);
+      renderer.render(scene, camera);
+
+    } catch (error) {
+      console.error('[Game] Animation loop error:', error);
+      if (CONFIG.DEBUG.ENABLE_LOGGING) {
+        console.error('[Game] Stack trace:', error.stack);
+      }
+    }
   }
 
   // ============================================
@@ -1672,7 +2058,7 @@ window.THREE = THREE;
   // CLEANUP - Called when exiting game mode
   // ============================================
   function cleanup() {
-    console.log('[Game] Cleaning up...');
+    if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Cleaning up...');
 
     // Stop animation
     if (animationId) {
@@ -1684,7 +2070,13 @@ window.THREE = THREE;
     const scoreboard = document.getElementById('game-scoreboard');
     if (scoreboard) {
       scoreboard.remove();
-      console.log('[Game] Scoreboard removed');
+      if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Scoreboard removed');
+    }
+
+    // Remove performance monitor
+    const perfMonitor = document.getElementById('performance-monitor');
+    if (perfMonitor) {
+      perfMonitor.remove();
     }
 
     // Remove background effects
@@ -1735,6 +2127,12 @@ window.THREE = THREE;
     targetY = 8;
     targetZ = 0;
     thrownOrbs = [];
+    particles = [];
+    orbTrails = [];
+
+    // Clear particle pool
+    particlePool.clear();
+
     gameInitialized = false;
 
     window.removeEventListener('resize', onWindowResize);
@@ -1743,7 +2141,7 @@ window.THREE = THREE;
     window.removeEventListener('click', handleCanvasClick);
     window.removeEventListener('touchstart', handleTouchStart);
 
-    console.log('[Game] Cleanup complete');
+    if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Cleanup complete');
   }
 
   // ============================================
@@ -1752,7 +2150,7 @@ window.THREE = THREE;
 
   // Listen for game start
   window.addEventListener('startGame', () => {
-    console.log('[Game] Game start event received');
+    if (CONFIG.DEBUG.ENABLE_LOGGING) console.log('[Game] Game start event received');
     // Wait for game container to fade in
     setTimeout(initGame, 1800);
   });

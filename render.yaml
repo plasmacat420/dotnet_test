@@ -24,7 +24,7 @@ services:
       - key: TTS_PROVIDER
         value: elevenlabs
       - key: TTS_VOICE
-        value: Rachel
+        value: Jessica
       - key: TTS_MODEL
         value: eleven_multilingual_v2
       - key: AGENT_NAME

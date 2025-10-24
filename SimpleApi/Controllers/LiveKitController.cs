@@ -55,11 +55,27 @@ public class LiveKitController : ControllerBase
 
             var token = _tokenService.GenerateToken(roomName, identity, name);
 
-            // Dispatch cloud agent to this room (fire and forget but log immediately)
-            var dispatchTask = _agentDispatch.DispatchAgentToRoomAsync(roomName);
-
-            // Don't await - let it run in background, but log the start
+            // Dispatch cloud agent to this room (await to handle errors)
             _logger.LogInformation("Dispatching agent to room {RoomName}", roomName);
+
+            try
+            {
+                var dispatched = await _agentDispatch.DispatchAgentToRoomAsync(roomName);
+                if (dispatched)
+                {
+                    _logger.LogInformation("Agent successfully dispatched to room {RoomName}", roomName);
+                }
+                else
+                {
+                    _logger.LogWarning("Agent dispatch returned false for room {RoomName}. Fallback agents may still pick up.", roomName);
+                }
+            }
+            catch (Exception dispatchEx)
+            {
+                // Log error but don't fail the request - user still gets a valid token
+                // Fallback agents or manual dispatch can still work
+                _logger.LogError(dispatchEx, "Failed to dispatch agent to room {RoomName}. Token still valid, fallback may work.", roomName);
+            }
 
             return Ok(new TokenResponse
             {

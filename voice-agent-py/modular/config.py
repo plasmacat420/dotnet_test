@@ -22,7 +22,7 @@ AGENT_NAME = "hindi-voice-agent"
 AGENT_PORT = int(os.getenv("AGENT_PORT", "8765"))
 # IMPORTANT: Set to False for explicit dispatch (required for LiveKit Cloud)
 # When False, agent must be explicitly dispatched to rooms via API
-PLAYGROUND_MODE = False  # Use explicit dispatch for Cloud agents
+PLAYGROUND_MODE = os.getenv("PLAYGROUND_MODE", "false").lower() == "true"  # Read from env
 
 # API Configuration
 API_BASE_URL = os.getenv("API_BASE_URL", "http://api:8080")  # Default for local dev
@@ -112,7 +112,7 @@ TERTIARY_LANGUAGE = "mr"  # Marathi
 
 # TTS Configuration
 TTS_PROVIDER = os.getenv("TTS_PROVIDER", "elevenlabs")  # elevenlabs, openai, azure, google, sarvam
-TTS_VOICE = os.getenv("TTS_VOICE", "Jessica")  # Voice name/ID
+TTS_VOICE = os.getenv("TTS_VOICE", "cgSgspJ2msm6clMCkdW9")  # Voice ID (default: cgSgspJ2msm6clMCkdW9)
 TTS_MODEL = os.getenv("TTS_MODEL", "eleven_multilingual_v2")  # Model (for ElevenLabs)
 
 # TTS Fallback Configuration

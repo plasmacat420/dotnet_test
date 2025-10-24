@@ -23,6 +23,8 @@
 using SimpleApi.Configuration;
 using SimpleApi.Middleware;
 using SimpleApi.Services;
+using Polly;
+using Polly.Extensions.Http;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STEP 1: CREATE WEB APPLICATION BUILDER
@@ -50,7 +52,7 @@ builder.Services.AddControllers()
 
 // Configure CORS (Cross-Origin Resource Sharing)
 // Allows frontend to call API from different domain
-builder.Services.ConfigureCors();
+builder.Services.ConfigureCors(builder.Configuration, builder.Environment);
 
 // Configure Swagger for API documentation
 // Access at /swagger when app is running
@@ -78,11 +80,36 @@ builder.Services.AddScoped<LiveKitTokenService>();
 // Register Email Service
 builder.Services.AddScoped<EmailService>();
 
-// Register Summary Service with HttpClient
-builder.Services.AddHttpClient<SummaryService>();
+// Register Rate Limiting Service (singleton for shared state)
+builder.Services.AddSingleton<RateLimitingService>();
 
-// Register Agent Dispatch Service with HttpClient
-builder.Services.AddHttpClient<AgentDispatchService>();
+// Register Summary Service with HttpClient (with timeout and retries)
+builder.Services.AddHttpClient<SummaryService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(60); // Groq API can be slow, allow 60s
+})
+.AddTransientHttpErrorPolicy(policyBuilder =>
+    policyBuilder.WaitAndRetryAsync(
+        retryCount: 3,
+        sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+        onRetry: (outcome, timespan, retryCount, context) =>
+        {
+            Console.WriteLine($"SummaryService retry {retryCount} after {timespan.TotalSeconds}s delay");
+        }));
+
+// Register Agent Dispatch Service with HttpClient (with timeout and retries)
+builder.Services.AddHttpClient<AgentDispatchService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30); // LiveKit dispatch should be fast
+})
+.AddTransientHttpErrorPolicy(policyBuilder =>
+    policyBuilder.WaitAndRetryAsync(
+        retryCount: 2,
+        sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(retryAttempt),
+        onRetry: (outcome, timespan, retryCount, context) =>
+        {
+            Console.WriteLine($"AgentDispatchService retry {retryCount} after {timespan.TotalSeconds}s delay");
+        }));
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STEP 3: BUILD THE APPLICATION

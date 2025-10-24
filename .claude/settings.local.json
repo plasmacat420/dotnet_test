@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Read(//c/Users/faiz0/Downloads/codes/voicedemo_agent/**)",
-      "Read(//c/Users/faiz0/Downloads/codes/dotnet_test/**)"
+      "Read(//c/Users/faiz0/Downloads/codes/dotnet_test/**)",
+      "Bash(curl:*)",
+      "Bash(dotnet add package:*)",
+      "Bash(lk agent:*)",
+      "WebSearch",
+      "WebFetch(domain:docs.livekit.io)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "ask": []

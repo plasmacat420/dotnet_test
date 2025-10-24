@@ -192,7 +192,7 @@ Rules:
         sb.AppendLine($"<tr><td style='padding: 6px 0; color: #6b7280;'><strong>Name:</strong></td><td style='padding: 6px 0; color: #1f2937;'>{summary.UserDetails?.Name ?? "Not provided"}</td></tr>");
         sb.AppendLine($"<tr><td style='padding: 6px 0; color: #6b7280;'><strong>Email:</strong></td><td style='padding: 6px 0; color: #1f2937;'>{summary.UserDetails?.Email ?? "Not provided"}</td></tr>");
         sb.AppendLine($"<tr><td style='padding: 6px 0; color: #6b7280;'><strong>Messages:</strong></td><td style='padding: 6px 0; color: #1f2937;'>{messages.Count}</td></tr>");
-        sb.AppendLine($"<tr><td style='padding: 6px 0; color: #6b7280;'><strong>Lead Quality:</strong></td><td style='padding: 6px 0;'><span style='display: inline-block; padding: 4px 12px; border-radius: 6px; background: {GetLeadQualityColor(summary.LeadQuality)}; color: white; font-weight: 600; font-size: 13px; text-transform: uppercase;'>{summary.LeadQuality ?? "N/A"}</span></td></tr>");
+        sb.AppendLine($"<tr><td style='padding: 6px 0; color: #6b7280;'><strong>Lead Quality:</strong></td><td style='padding: 6px 0;'><span style='display: inline-block; padding: 4px 12px; border-radius: 6px; background: {GetLeadQualityColor(summary.LeadQuality ?? "N/A")}; color: white; font-weight: 600; font-size: 13px; text-transform: uppercase;'>{summary.LeadQuality ?? "N/A"}</span></td></tr>");
         sb.AppendLine("</table>");
         sb.AppendLine("</div>");
 

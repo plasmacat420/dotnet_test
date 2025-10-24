@@ -67,12 +67,12 @@ class SessionManager:
     async def generate_initial_reply(self):
         """Generate initial greeting"""
         if self.agent_session:
-            # generate_reply returns a SpeechHandle, not a coroutine
-            # The monitor task will detect the message and send it to frontend
-            self.agent_session.generate_reply(
-                instructions="Greet the user and offer your assistance."
+            # CRITICAL FIX: generate_reply() must be awaited!
+            # Without await, the coroutine starts but never completes, causing agent to connect but not speak
+            await self.agent_session.generate_reply(
+                instructions="Greet the user warmly and offer your assistance."
             )
-            self.logger.info("Greeting generation started")
+            self.logger.info("Greeting generation completed")
 
     def is_session_active(self) -> bool:
         """Check if session is active"""
