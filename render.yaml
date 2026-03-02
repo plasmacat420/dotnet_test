@@ -1,6 +1,40 @@
 services:
+  # Backend API (.NET)
+  - type: web
+    name: voicebot-api
+    env: docker
+    region: oregon
+    plan: free
+    dockerfilePath: ./SimpleApi/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:8080
+      - key: LIVEKIT_URL
+        sync: false
+      - key: LIVEKIT_API_KEY
+        sync: false
+      - key: LIVEKIT_API_SECRET
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: Email__SmtpHost
+        value: smtp.gmail.com
+      - key: Email__SmtpPort
+        value: "587"
+      - key: Email__SenderEmail
+        sync: false
+      - key: Email__SenderPassword
+        sync: false
+      - key: Email__SenderName
+        value: Voice Agent Demo
+
+  # Voice Agent (Python)
   - type: worker
-    name: livekit-voice-agent
+    name: voicebot-agent
     env: python
     region: oregon
     plan: free
@@ -22,16 +56,23 @@ services:
       - key: ELEVENLABS_API_KEY
         sync: false
       - key: TTS_PROVIDER
-        value: elevenlabs
+        value: sarvam
       - key: TTS_VOICE
-        value: Jessica
+        value: anushka
       - key: TTS_MODEL
-        value: eleven_multilingual_v2
+        value: bulbul:v1
+      - key: TTS_FALLBACK_ENABLED
+        value: "false"
       - key: AGENT_NAME
         value: Hindi-English-Voice-Agent
       - key: PLAYGROUND_MODE
-        value: "false"
+        value: "True"
       - key: LOG_LEVEL
         value: INFO
       - key: AGENT_PORT
         value: "8081"
+      - key: API_BASE_URL
+        fromService:
+          type: web
+          name: voicebot-api
+          property: host
