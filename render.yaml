@@ -5,8 +5,8 @@ services:
     env: docker
     region: oregon
     plan: free
-    dockerfilePath: ./SimpleApi/Dockerfile
-    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    dockerContext: ./SimpleApi
     healthCheckPath: /health
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
