@@ -5,7 +5,7 @@ services:
     env: docker
     region: oregon
     plan: free
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./SimpleApi/Dockerfile
     dockerContext: ./SimpleApi
     healthCheckPath: /health
     envVars:
