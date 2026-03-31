@@ -32,10 +32,10 @@ LIVEKIT_URL = os.getenv("LIVEKIT_URL")
 LIVEKIT_API_KEY = os.getenv("LIVEKIT_API_KEY")
 LIVEKIT_API_SECRET = os.getenv("LIVEKIT_API_SECRET")
 
-***REMOVED*** Configuration
+# Deepgram Configuration
 DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
 
-***REMOVED*** Configuration
+# Azure OpenAI Configuration
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
 AZURE_OPENAI_KEY = os.getenv("AZURE_OPENAI_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # Fallback for standard OpenAI
