@@ -2,6 +2,8 @@
 
 A production-grade, real-time AI voice agent that talks to visitors in Hindi and English, qualifies leads, and emails a conversation summary — all without human intervention.
 
+The site also includes a **3D zombie shooter mini-game** built with Three.js — wave-based survival with animated GLTF models, progressive difficulty, and score tracking. Because why not.
+
 **Live demo:** https://voicebot-api-4s40.onrender.com
 
 ---
@@ -36,7 +38,7 @@ Browser (Three.js + WebRTC)
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | Vanilla JS, Three.js (3D avatar), LiveKit Browser SDK |
+| Frontend | Vanilla JS, Three.js (3D avatar + zombie game), LiveKit Browser SDK |
 | Backend API | .NET 9 (ASP.NET Core), deployed on Render |
 | Voice Agent | Python 3.11, livekit-agents framework |
 | Realtime transport | LiveKit Cloud (WebRTC) |
