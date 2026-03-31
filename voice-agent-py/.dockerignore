@@ -20,10 +20,13 @@ dist/
 *.egg-info/
 .eggs/
 
-# Environment files
+# Environment files — NEVER bake secrets into the image
 .env
 .env.local
 *.env
+.secrets
+.secrets.backup
+*.secrets
 
 # Logs
 *.log
