@@ -18,9 +18,9 @@ Browser (Three.js + WebRTC)
         | Room events / audio track                        |
         v                                                  |
   Python Voice Agent (livekit-agents)                     |
-    ├── STT  → Sarvam AI (saarika-v2)                     |
-    ├── LLM  → Gemini Flash                               |
-    └── TTS  → Sarvam AI (bulbul-v2, Anushka voice)      |
+    ├── STT  → Sarvam AI (en-IN)                          |
+    ├── LLM  → Groq (llama-3.3-70b-versatile)            |
+    └── TTS  → ElevenLabs (multilingual v2)              |
                                                           |
   .NET 9 Backend API ◄──────────────────────────────────-─┘
     ├── /token        — issues LiveKit room tokens
@@ -40,9 +40,9 @@ Browser (Three.js + WebRTC)
 | Backend API | .NET 9 (ASP.NET Core), deployed on Render |
 | Voice Agent | Python 3.11, livekit-agents framework |
 | Realtime transport | LiveKit Cloud (WebRTC) |
-| STT | Sarvam AI (`saarika-v2`) |
-| LLM | Gemini 2.0 Flash |
-| TTS | Sarvam AI (`bulbul-v2`, voice: Anushka) |
+| STT | Sarvam AI (en-IN) |
+| LLM | Groq (`llama-3.3-70b-versatile`) |
+| TTS | ElevenLabs (multilingual v2) |
 | Email summary | Groq (`llama-3.3-70b`) via MailKit / Gmail SMTP |
 | Containerisation | Docker (multi-stage builds) |
 | Hosting | Render (free tier — web service + background worker) |
@@ -55,7 +55,7 @@ Browser (Three.js + WebRTC)
 2. The browser calls `.NET /token` — receives a signed LiveKit JWT.
 3. The browser joins a LiveKit room via WebRTC.
 4. `.NET /dispatch` tells the Python agent to enter the same room.
-5. The Python agent listens with Sarvam STT, reasons with Gemini Flash, and speaks with Sarvam TTS — all in real time.
+5. The Python agent listens with Sarvam STT, reasons with Groq LLaMA, and speaks with ElevenLabs TTS — all in real time.
 6. Anushka has a natural bilingual conversation and collects the visitor's name and email if they show interest.
 7. On disconnect, the agent posts the full transcript to `.NET /transcript`.
 8. The .NET API calls Groq to generate a concise summary, then emails it via Gmail SMTP.
@@ -67,7 +67,7 @@ Browser (Three.js + WebRTC)
 ### Prerequisites
 
 - Docker & Docker Compose  **or**  .NET 9 SDK + Python 3.11 + `uv`
-- Accounts for: LiveKit Cloud, Sarvam AI, Groq, Google AI Studio
+- Accounts for: LiveKit Cloud, Sarvam AI, Groq, ElevenLabs
 - A Gmail account with an [App Password](https://myaccount.google.com/apppasswords) enabled
 
 ### 1. Clone and configure
@@ -112,9 +112,9 @@ See `.env.example` for the full documented list. Key variables:
 | `LIVEKIT_URL` | Your LiveKit Cloud WSS endpoint |
 | `LIVEKIT_API_KEY` | LiveKit project API key |
 | `LIVEKIT_API_SECRET` | LiveKit project API secret |
-| `SARVAM_API_KEY` | Sarvam AI key (STT + TTS) |
-| `GOOGLE_API_KEY` | Google AI Studio key (Gemini Flash LLM) |
-| `GROQ_API_KEY` | Groq key (email summary generation) |
+| `SARVAM_API_KEY` | Sarvam AI key (STT) |
+| `ELEVENLABS_API_KEY` | ElevenLabs key (TTS) |
+| `GROQ_API_KEY` | Groq key (LLM + email summary generation) |
 | `Email__SenderEmail` | Gmail sender address |
 | `Email__SenderPassword` | Gmail App Password (not your account password) |
 
