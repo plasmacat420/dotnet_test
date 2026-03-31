@@ -8,7 +8,8 @@
       "Bash(lk agent:*)",
       "WebSearch",
       "WebFetch(domain:docs.livekit.io)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(find . -maxdepth 2 -name *LIVEKIT* -o -name *DEPLOY* -o -name *REDEPLOY*)"
     ],
     "deny": [],
     "ask": []
