@@ -247,7 +247,6 @@ coverage/
 
 # Keep configuration templates
 !.env.example
-!appsettings.json
 
 # ============================================
 # PROJECT-SPECIFIC IGNORES
