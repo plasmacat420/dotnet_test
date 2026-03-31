@@ -113,18 +113,13 @@ def prewarm_fnc(proc: agents.JobProcess):
             model="llama-3.3-70b-versatile"  # Fast, accurate, great for voice
         )
 
-        # TTS - Simple Sarvam-only configuration (reliable for Hindi/English)
-        logger.info("Initializing Eleven Labs TTS for Hindi/English voice")
-        proc.userdata["tts"] = sarvam.TTS(
-            target_language_code="hi-IN",
-            speaker="anushka",  # Female Hindi/English voice
+        # TTS - ElevenLabs for reliable Hindi/English multilingual voice
+        logger.info("Initializing ElevenLabs TTS for Hindi/English voice")
+        proc.userdata["tts"] = elevenlabs.TTS(
+            voice_id="cgSgspJ2msm6clMCkdW9",
+            model="eleven_multilingual_v2"
         )
-        # proc.userdata["tts"] = elevenlabs.TTS(
-        #     voice_id="cgSgspJ2msm6clMCkdW9",
-        #     model="eleven_multilingual_v2"
-           
-        # )
-        logger.info("TTS initialized:Eleven labs jessica voice)")
+        logger.info("TTS initialized: ElevenLabs voice")
 
 
         # Silero VAD
