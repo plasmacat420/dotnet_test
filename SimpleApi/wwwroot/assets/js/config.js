@@ -3,6 +3,11 @@
 // ============================================
 
 window.AppConfig = {
+  // Backend API (Render) - used when served from GitHub Pages
+  api: {
+    baseUrl: 'https://voicebot-api-4s40.onrender.com'
+  },
+
   // Personal Information
   contact: {
     name: "Faiz",

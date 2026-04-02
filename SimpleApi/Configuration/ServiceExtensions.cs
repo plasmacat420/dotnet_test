@@ -57,7 +57,7 @@ public static class ServiceExtensions
                 {
                     // In production, restrict to configured origins
                     var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-                        ?? new[] { "https://prepreater.azurewebsites.net", "http://localhost:5264" };
+                        ?? new[] { "https://plasmacat420.github.io", "https://prepreater.com", "http://localhost:5264" };
 
                     builder
                         .WithOrigins(allowedOrigins)

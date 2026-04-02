@@ -101,14 +101,26 @@ class LiveKitVoiceClient {
 
       // Stage 1: Getting token
       if (this.onStageChange) this.onStageChange('Getting access token...');
-      const response = await fetch('/api/livekit/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          identity: `user-${Date.now()}`,
-          name: 'Guest'
-        })
-      });
+
+      // Cold-start handler: Render free tier takes ~60s to wake — update message if slow
+      const coldStartTimer = setTimeout(() => {
+        if (this.onStageChange) this.onStageChange('Server waking up (free hosting)... please wait');
+      }, 10000);
+
+      const apiBase = (window.AppConfig && window.AppConfig.api && window.AppConfig.api.baseUrl) || '';
+      let response;
+      try {
+        response = await fetch(`${apiBase}/api/livekit/token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            identity: `user-${Date.now()}`,
+            name: 'Guest'
+          })
+        });
+      } finally {
+        clearTimeout(coldStartTimer);
+      }
 
       if (!response.ok) {
         throw new Error(`Failed to get token: ${response.statusText}`);
@@ -350,3 +362,11 @@ class LiveKitVoiceClient {
 
 // Export to global scope
 window.LiveKitVoiceClient = LiveKitVoiceClient;
+
+// Prewarm Render on page load — free tier sleeps when idle, this gives it a head start
+(function () {
+  const apiBase = (window.AppConfig && window.AppConfig.api && window.AppConfig.api.baseUrl) || '';
+  if (apiBase) {
+    fetch(apiBase + '/api/livekit/health').catch(function () {});
+  }
+}());
