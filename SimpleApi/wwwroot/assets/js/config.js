@@ -11,8 +11,8 @@ window.AppConfig = {
   // Personal Information
   contact: {
     name: "Faiz",
-    email: "faiz.corsair@gmail.com",
-    tagline: "Modern UI · Fast interactions · DM for collabs"
+    email: "prepreater1@gmail.com",
+    tagline: "Enterprise GenAI Engineer · Voice AI · Agentic Systems"
   },
 
   // Social Links
@@ -24,10 +24,10 @@ window.AppConfig = {
 
   // Typewriter Messages
   messages: [
-    "Hi — I'm Faiz. I build elegant, fast interfaces.",
-    "I ride skateboards and ship delightful UI.",
-    "Competitive coder. Curious problem solver. Friendly to bugs.",
-    "Let's build something people actually enjoy using."
+    "Hi — I'm Faiz. I build production-grade AI systems.",
+    "LangGraph · RAG · Voice AI · Agentic workflows.",
+    "You're talking to one of my voice agents right now.",
+    "Let's build something genuinely useful with AI."
   ],
 
   // Typewriter Settings

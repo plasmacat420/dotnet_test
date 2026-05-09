@@ -1,4 +1,5 @@
 # modular/transcript_manager.py
+import asyncio
 import json
 from datetime import datetime
 from typing import List, Dict
@@ -78,31 +79,40 @@ class TranscriptManager:
 
     async def send_transcript_email(self, room_name: str, user_transcripts: List[Dict],
                                     agent_messages: List[Dict], email: str) -> bool:
-        """Send transcript via email through .NET API"""
+        """Send transcript via email through .NET API, with retries for Render cold-start."""
 
         try:
-            # Format transcript
             transcript_data = self.format_transcript(user_transcripts, agent_messages)
-
-            # Prepare payload for email API
             payload = {
                 "to": email,
                 "roomName": room_name,
                 "transcript": transcript_data
             }
-
-            # Send to .NET API
             url = f"{self.api_base_url}/api/transcript/send"
+            # 90s timeout: Render free-tier cold-start takes up to ~60s
+            timeout = aiohttp.ClientTimeout(total=90)
 
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, json=payload, timeout=30) as response:
-                    if response.status == 200:
-                        self.logger.info(f"Transcript sent successfully to {email}")
-                        return True
-                    else:
-                        error_text = await response.text()
-                        self.logger.error(f"Failed to send transcript: {response.status} - {error_text}")
-                        return False
+            for attempt in range(3):
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.post(url, json=payload, timeout=timeout) as response:
+                            if response.status == 200:
+                                self.logger.info(f"Transcript sent to {email} (attempt {attempt + 1})")
+                                return True
+                            error_text = await response.text()
+                            self.logger.error(f"Transcript POST failed ({response.status}): {error_text}")
+                except asyncio.TimeoutError:
+                    self.logger.warning(f"Transcript POST timed out (attempt {attempt + 1}/3)")
+                except Exception as e:
+                    self.logger.warning(f"Transcript POST error (attempt {attempt + 1}/3): {e}")
+
+                if attempt < 2:
+                    wait = (attempt + 1) * 10  # 10s, 20s between retries
+                    self.logger.info(f"Retrying transcript in {wait}s...")
+                    await asyncio.sleep(wait)
+
+            self.logger.error("All 3 transcript attempts failed")
+            return False
 
         except Exception as e:
             self.logger.error(f"Error sending transcript email: {e}", exc_info=True)

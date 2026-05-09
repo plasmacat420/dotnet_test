@@ -481,7 +481,7 @@ function ContactCard() {
       React.createElement('div', { className: "photo-wrap" },
         React.createElement('img', {
           src: "assets/images/me.jpg",
-          alt: `${config.contact.name} - UI Developer & Competitive Coder`,
+          alt: `${config.contact.name} - Enterprise GenAI Engineer & AI Systems Architect`,
           loading: "eager",
           decoding: "async",
           onError: e => e.target.style.display = 'none'

@@ -38,12 +38,13 @@ class LiveKitVoiceClient {
     this.token = null;
     this.roomName = null;
     this.LiveKit = null;
-    this.onStageChange = null; // Callback for stage updates
-    this.onDisconnect = null; // Callback for disconnect events
-    this.onError = null; // Callback for error events
+    this.onStageChange = null;
+    this.onDisconnect = null;
+    this.onError = null;
     this.maxRetries = 3;
     this.retryCount = 0;
-    this.agentWakeTimeout = 15000; // 15 seconds to wait for agent
+    this.agentWakeTimeout = 15000;
+    this._keepAliveInterval = null;
   }
 
   /**
@@ -168,7 +169,8 @@ class LiveKitVoiceClient {
       if (this.onStageChange) this.onStageChange('Connected! Start speaking...');
       this.isConnected = true;
       this.isConnecting = false;
-      this.retryCount = 0; // Reset retry count on success
+      this.retryCount = 0;
+      this._startKeepAlive(); // Keep Render warm so transcript email always fires
 
     } catch (error) {
       console.error('Connection error:', error);
@@ -299,10 +301,10 @@ class LiveKitVoiceClient {
 
     // Disconnected (by server or error)
     this.room.on(this.LiveKit.RoomEvent.Disconnected, () => {
+      this._stopKeepAlive();
       this.isConnected = false;
       this.isConnecting = false;
 
-      // Notify UI that we've been disconnected
       if (this.onDisconnect) {
         this.onDisconnect();
       }
@@ -315,6 +317,24 @@ class LiveKitVoiceClient {
   }
 
   /**
+   * Ping Render health every 2 min so it never goes cold during a call
+   */
+  _startKeepAlive() {
+    const apiBase = (window.AppConfig && window.AppConfig.api && window.AppConfig.api.baseUrl) || '';
+    if (!apiBase) return;
+    this._keepAliveInterval = setInterval(() => {
+      fetch(apiBase + '/health', { method: 'GET' }).catch(() => {});
+    }, 2 * 60 * 1000);
+  }
+
+  _stopKeepAlive() {
+    if (this._keepAliveInterval) {
+      clearInterval(this._keepAliveInterval);
+      this._keepAliveInterval = null;
+    }
+  }
+
+  /**
    * Disconnect from room and clean up resources
    */
   async disconnect() {
@@ -323,6 +343,8 @@ class LiveKitVoiceClient {
       this.isConnecting = false;
       return;
     }
+
+    this._stopKeepAlive();
 
     try {
       // Remove all audio elements created by this client
@@ -342,7 +364,6 @@ class LiveKitVoiceClient {
       this.isConnecting = false;
     } catch (error) {
       console.error('Error disconnecting:', error);
-      // Force cleanup even if disconnect fails
       this.room = null;
       this.isConnected = false;
       this.isConnecting = false;

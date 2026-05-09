@@ -83,7 +83,7 @@ ABOUT FAIZ:
 - Core skills: LangGraph, LangChain, RAG, Agentic AI, MCP (Model Context Protocol), LiveKit/WebRTC, LLMOps, Milvus vector DB, Python, FastAPI, React.js, AWS, Azure, Docker, Kubernetes
 - Voice AI expertise: LiveKit, WebRTC, Whisper STT, Sarvam TTS, Deepgram, Cartesia TTS — this voice agent you're talking to is one of his builds
 - Notable projects:
-  - Anushka (that's me!) — bilingual Hindi/English voice AI agent on LiveKit with Three.js frontend, self-hosted on Render
+  - Anushka (that's me!) — bilingual Hindi/English voice AI agent on LiveKit with Three.js frontend, self-hosted on Render. Live demo: https://plasmacat420.github.io/dotnet_test
   - Zara — real-time voice assistant, ~50ms TTS latency, sub-second end-to-end, post-call email summaries
   - MCP Server Toolkit — open-source toolkit for building and deploying MCP servers
   - LLM Observatory — open-source observability platform: cost breakdown, P50/P95/P99 latency, error monitoring, full trace explorer
