@@ -14,110 +14,116 @@ window.THREE = THREE;
   'use strict';
 
   // ============================================
+  // MOBILE DETECTION
+  // ============================================
+  const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.innerWidth < 768;
+
+  // ============================================
   // GAME CONFIGURATION - Enterprise Settings
   // ============================================
   const CONFIG = {
     // Zombie Settings
     ZOMBIE: {
-      SCALE: 12.0,                  // Zombie size multiplier
-      SPAWN_INTERVAL: 1000,         // Milliseconds between spawns
-      SPAWN_DISTANCE: -90,          // Z position where zombies spawn
-      CLEANUP_DISTANCE: 28,         // Z position where zombies are removed
-      BASE_SPEED: 0.1,              // Units per frame
-      SPEED_MULTIPLIER_THRESHOLD: 5, // Score threshold for speed increase
-      SPEED_MULTIPLIER: 5,          // Speed multiplier after threshold
-      RUN_ANIMATION_THRESHOLD: 5,   // Score threshold to switch to run animation
-      MULTI_SPAWN_THRESHOLD: 15,    // Score threshold for multiple spawns
-      MAX_ZOMBIES: 50,              // Maximum zombies allowed at once (more intense gameplay!)
-      MAX_MULTI_SPAWN: 3,           // Maximum additional zombies per spawn cycle
-      BRIGHTNESS_MULTIPLIER: 1.5,   // Material brightness adjustment
-      SPAWN_RANGE_X: 80,            // Random X spawn range
-      GROUND_OFFSET: 2.5            // Vertical offset to place feet on ground
+      SCALE: 12.0,
+      SPAWN_INTERVAL: isMobile ? 1500 : 1000,
+      SPAWN_DISTANCE: -90,
+      CLEANUP_DISTANCE: 28,
+      BASE_SPEED: 0.1,
+      SPEED_MULTIPLIER_THRESHOLD: 5,
+      SPEED_MULTIPLIER: 5,
+      RUN_ANIMATION_THRESHOLD: 5,
+      MULTI_SPAWN_THRESHOLD: 15,
+      MAX_ZOMBIES: isMobile ? 20 : 50,
+      MAX_MULTI_SPAWN: isMobile ? 1 : 3,
+      BRIGHTNESS_MULTIPLIER: 1.5,
+      SPAWN_RANGE_X: 80,
+      GROUND_OFFSET: 2.5
     },
 
     // Orb Settings
     ORB: {
-      SCALE: 2.5,                   // Orb size multiplier
-      ORBIT_RADIUS: 0.5,            // Distance from cursor
-      ORBIT_SPEED: 0.3,             // Rotation speed
-      COLLISION_RADIUS: 12.0,       // Collision detection radius (increased for better hit detection)
-      THROW_SPEED: 0.08,            // Animation speed (increased for more impact)
-      RETURN_SPEED_MULTIPLIER: 1.5, // Return faster than throw
-      ARC_HEIGHT: 15.0,             // Throw arc height (critical for hitting zombies)
-      TRAIL_SPAWN_CHANCE: 0.5       // Probability of spawning trail particle (increased for more visual)
+      SCALE: 2.5,
+      ORBIT_RADIUS: 0.5,
+      ORBIT_SPEED: 0.3,
+      COLLISION_RADIUS: isMobile ? 16.0 : 12.0,  // Bigger hit zone on mobile
+      THROW_SPEED: 0.08,
+      RETURN_SPEED_MULTIPLIER: 1.5,
+      ARC_HEIGHT: 15.0,
+      TRAIL_SPAWN_CHANCE: isMobile ? 0.25 : 0.5
     },
 
     // Camera Settings
     CAMERA: {
-      FOV: 60,                      // Field of view
-      POSITION: { x: 0, y: 15, z: 20 }, // Camera location
-      LOOKAT: { x: 0, y: 0, z: -45 },   // Camera target
-      SHAKE_INTENSITY: 0.3,         // Shake strength on zombie kill
-      SHAKE_DURATION: 0.2           // Shake duration in seconds
+      FOV: 60,
+      POSITION: { x: 0, y: 15, z: 20 },
+      LOOKAT: { x: 0, y: 0, z: -45 },
+      SHAKE_INTENSITY: 0.3,
+      SHAKE_DURATION: 0.2
     },
 
     // Particle Effects
     PARTICLES: {
-      HIT_COUNT: 50,                // Number of particles per hit (increased for more impact)
-      HIT_SPEED_MIN: 0.5,           // Minimum particle velocity (faster for explosion effect)
-      HIT_SPEED_MAX: 1.5,           // Maximum particle velocity (faster for explosion effect)
-      HIT_SIZE: 0.3,                // Particle sphere size
-      LIFE_DECAY_RATE: 2,           // How fast particles fade (multiplier)
-      GRAVITY: 0.02,                // Particle gravity
-      TRAIL_SIZE: 0.15,             // Orb trail particle size
-      TRAIL_LIFE: 0.5               // Orb trail lifetime
+      HIT_COUNT: isMobile ? 20 : 50,
+      HIT_SPEED_MIN: 0.5,
+      HIT_SPEED_MAX: 1.5,
+      HIT_SIZE: 0.3,
+      LIFE_DECAY_RATE: 2,
+      GRAVITY: 0.02,
+      TRAIL_SIZE: 0.15,
+      TRAIL_LIFE: 0.5
     },
 
     // Effects & Polish
     EFFECTS: {
-      SLOW_MOTION_DURATION: 150,    // Milliseconds
-      SLOW_MOTION_SCALE: 0.3,       // Time scale (30% speed)
-      FLASH_OPACITY: 0.3,           // Screen flash intensity
-      FLASH_DURATION: 50,           // Screen flash duration (ms)
-      GLOW_DURATION: 150,           // Zombie hit glow duration (ms)
-      GLOW_INTENSITY: 0.8           // Zombie hit glow brightness
+      SLOW_MOTION_DURATION: 150,
+      SLOW_MOTION_SCALE: 0.3,
+      FLASH_OPACITY: 0.3,
+      FLASH_DURATION: 50,
+      GLOW_DURATION: 150,
+      GLOW_INTENSITY: 0.8
     },
 
     // Scoring
     SCORING: {
-      KILL_POINTS: 2,               // Points for killing zombie
-      ESCAPE_PENALTY: -1            // Points lost when zombie escapes
+      KILL_POINTS: 2,
+      ESCAPE_PENALTY: -1
     },
 
     // Lighting
     LIGHTING: {
-      AMBIENT_INTENSITY: 2.0,       // Overall scene brightness
-      DIRECTIONAL_INTENSITY: 2.0,   // Main light intensity
-      FRONT_LIGHT_INTENSITY: 1.2,   // Camera-facing light
-      BACK_LIGHT_INTENSITY: 0.5,    // Atmospheric back light
-      ORB_LIGHT_ICE: 3,            // Ice orb point light
-      ORB_LIGHT_FIRE: 3.5,         // Fire orb point light
-      ORB_LIGHT_ELECTRIC: 3.2      // Electric orb point light
+      AMBIENT_INTENSITY: 2.0,
+      DIRECTIONAL_INTENSITY: 2.0,
+      FRONT_LIGHT_INTENSITY: 1.2,
+      BACK_LIGHT_INTENSITY: 0.5,
+      ORB_LIGHT_ICE: 3,
+      ORB_LIGHT_FIRE: 3.5,
+      ORB_LIGHT_ELECTRIC: 3.2
     },
 
     // Scene
     SCENE: {
-      BACKGROUND_COLOR: 0x0a1628,   // Dark blue background
-      GROUND_WIDTH: 100,            // Ground plane width
-      GROUND_DEPTH: 250,            // Ground plane depth (extended)
-      GROUND_COLOR: 0x1a2332,       // Ground material color
-      GRID_SIZE: 250,               // Grid helper size
-      GRID_DIVISIONS: 100           // Grid helper divisions
+      BACKGROUND_COLOR: 0x0a1628,
+      GROUND_WIDTH: 100,
+      GROUND_DEPTH: 250,
+      GROUND_COLOR: 0x1a2332,
+      GRID_SIZE: 250,
+      GRID_DIVISIONS: isMobile ? 50 : 100
     },
 
     // Performance
     PERFORMANCE: {
-      ENABLE_SHADOWS: true,         // Enable shadow rendering
-      MAX_DELTA_TIME: 0.1,          // Clamp delta to prevent huge jumps
-      TARGET_FPS: 60                // Target frame rate
+      ENABLE_SHADOWS: !isMobile,    // Shadows off on mobile for big perf gain
+      MAX_DELTA_TIME: 0.1,
+      TARGET_FPS: 60,
+      PIXEL_RATIO: isMobile ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2)
     },
 
     // Debug (set to false for production)
     DEBUG: {
-      ENABLE_LOGGING: false,        // Console logging (DISABLED FOR PRODUCTION)
-      LOG_ZOMBIE_POSITION: false,   // Log zombie positions every 60 frames
-      LOG_COLLISION: false,         // Log collision events (DISABLED FOR PRODUCTION)
-      LOG_PERFORMANCE: false        // Log FPS and performance metrics
+      ENABLE_LOGGING: false,
+      LOG_ZOMBIE_POSITION: false,
+      LOG_COLLISION: false,
+      LOG_PERFORMANCE: false
     }
   };
 
@@ -138,12 +144,12 @@ window.THREE = THREE;
   // Scoring system
   let score = 0;
 
-  // Mouse tracking for orbit
+  // Mouse tracking for orbit (on mobile, start orbs near screen center-bottom)
   let mouseX = 0;
-  let mouseY = 0;
-  let targetX = 0; // 3D world position from raycasting
-  let targetY = 8; // 3D world position from raycasting (vertical)
-  let targetZ = 0; // 3D world position from raycasting (depth)
+  let mouseY = isMobile ? -0.5 : 0;
+  let targetX = 0;
+  let targetY = 8;
+  let targetZ = 0;
   let orbitAngle = 0;
   const orbitRadius = 0.5; // ADJUST: Smaller = orbs closer to cursor (try: 0.3-1.0)
   const orbitSpeed = 0.3;
@@ -700,9 +706,14 @@ window.THREE = THREE;
 
   function handleTouchStart(event) {
     if (event.touches.length === 0) return;
+    // Prevent scroll/zoom during gameplay
+    event.preventDefault();
     const touch = event.touches[0];
 
-    // Create a fake mouse event
+    // Update mouse position so orbs snap to touch point before throwing
+    mouseX = (touch.clientX / window.innerWidth) * 2 - 1;
+    mouseY = -(touch.clientY / window.innerHeight) * 2 + 1;
+
     const fakeEvent = {
       clientX: touch.clientX,
       clientY: touch.clientY
@@ -729,6 +740,40 @@ window.THREE = THREE;
       createScoreboard();
       score = 0;
       updateScore(0);
+
+      // Show mobile tap hint
+      if (isMobile) {
+        const hint = document.createElement('div');
+        hint.id = 'mobile-tap-hint';
+        hint.textContent = 'TAP TO THROW';
+        hint.style.cssText = `
+          position: fixed;
+          bottom: 100px;
+          left: 50%;
+          transform: translateX(-50%);
+          color: rgba(110, 231, 183, 0.85);
+          font-family: 'Courier New', monospace;
+          font-size: 14px;
+          font-weight: bold;
+          letter-spacing: 3px;
+          text-shadow: 0 0 12px rgba(110, 231, 183, 0.6);
+          pointer-events: none;
+          z-index: 10001;
+          animation: mobilePulse 1.5s ease-in-out infinite;
+        `;
+        // Add pulse keyframe
+        const style = document.createElement('style');
+        style.textContent = '@keyframes mobilePulse { 0%,100%{opacity:0.5;transform:translateX(-50%) scale(1)} 50%{opacity:1;transform:translateX(-50%) scale(1.05)} }';
+        document.head.appendChild(style);
+        document.body.appendChild(hint);
+        // Fade out after first throw
+        const removeHintOnce = () => {
+          const el = document.getElementById('mobile-tap-hint');
+          if (el) el.remove();
+          window.removeEventListener('touchstart', removeHintOnce);
+        };
+        setTimeout(() => window.addEventListener('touchstart', removeHintOnce), 2000);
+      }
 
       // Create background atmosphere elements
       createBackgroundEffects();
@@ -767,7 +812,7 @@ window.THREE = THREE;
       alpha: true
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(CONFIG.PERFORMANCE.PIXEL_RATIO);
     renderer.shadowMap.enabled = CONFIG.PERFORMANCE.ENABLE_SHADOWS;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
@@ -807,11 +852,11 @@ window.THREE = THREE;
 
     // Mouse tracking for orbit
     window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
 
     // Click/touch for throwing orbs
     window.addEventListener('click', handleCanvasClick);
-    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchstart', handleTouchStart, { passive: false });
 
     // Start animation loop
     animate();
@@ -837,6 +882,7 @@ window.THREE = THREE;
 
   function onTouchMove(event) {
     if (event.touches[0]) {
+      event.preventDefault(); // Prevent page scroll while playing
       mouseX = (event.touches[0].clientX / window.innerWidth) * 2 - 1;
       mouseY = -(event.touches[0].clientY / window.innerHeight) * 2 + 1;
     }
@@ -2065,6 +2111,10 @@ window.THREE = THREE;
       cancelAnimationFrame(animationId);
       animationId = null;
     }
+
+    // Remove mobile hint
+    const mobileHint = document.getElementById('mobile-tap-hint');
+    if (mobileHint) mobileHint.remove();
 
     // Remove scoreboard
     const scoreboard = document.getElementById('game-scoreboard');
