@@ -1,7 +1,7 @@
 # modular/transcript_manager.py
 import asyncio
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict
 import aiohttp
 from modular.utils import setup_logger
@@ -30,17 +30,28 @@ class TranscriptManager:
 
         # Add agent messages
         for am in agent_messages:
-            # Extract text from agent message structure
-            text = ""
-            if isinstance(am.get("content"), str):
-                text = am["content"]
-            elif isinstance(am.get("content"), list):
-                text = " ".join(str(c) for c in am["content"])
+            content = am.get("content", "")
+            if isinstance(content, str):
+                text = content
+            elif isinstance(content, list):
+                parts = []
+                for item in content:
+                    if isinstance(item, str):
+                        parts.append(item)
+                    elif isinstance(item, dict):
+                        # livekit-agents SDK serializes as {"type": "text", "text": "..."}
+                        parts.append(item.get("text", "") or str(item))
+                text = " ".join(p for p in parts if p)
+            else:
+                text = str(content) if content else ""
+
+            if not text.strip():
+                continue  # skip empty messages — would fail [Required] validation
 
             all_messages.append({
                 "role": "assistant",
-                "text": text,
-                "timestamp": am.get("created_at", datetime.now().isoformat())
+                "text": text.strip(),
+                "timestamp": am.get("created_at", datetime.now(timezone.utc).isoformat())
             })
 
         # Sort by timestamp (handle both ISO strings and numeric timestamps)
