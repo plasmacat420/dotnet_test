@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 from datetime import datetime, timezone
+import aiohttp
 
 from livekit import agents
 from livekit.agents import AgentSession, Agent, JobContext, RoomOutputOptions
@@ -14,11 +15,22 @@ from modular.utils import setup_logger
 logger = setup_logger(__name__)
 
 
+async def _warm_render(api_base_url: str):
+    try:
+        async with aiohttp.ClientSession() as s:
+            await s.get(f"{api_base_url}/health", timeout=aiohttp.ClientTimeout(total=60))
+        logger.info("Render warmed up")
+    except Exception:
+        pass
+
+
 async def entrypoint(ctx: JobContext):
     await ctx.connect()
 
     transcript_manager = TranscriptManager(api_base_url=config.API_BASE_URL)
     user_transcripts = []
+
+    asyncio.ensure_future(_warm_render(config.API_BASE_URL))
 
     session = AgentSession(
         stt=ctx.proc.userdata["stt"],

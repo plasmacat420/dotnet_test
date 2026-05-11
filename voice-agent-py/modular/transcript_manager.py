@@ -100,10 +100,10 @@ class TranscriptManager:
                 "transcript": transcript_data
             }
             url = f"{self.api_base_url}/api/transcript/send"
-            # 90s timeout: Render free-tier cold-start takes up to ~60s
-            timeout = aiohttp.ClientTimeout(total=90)
+            # 25s timeout: Render should be warm (pinged at call start)
+            timeout = aiohttp.ClientTimeout(total=25)
 
-            for attempt in range(3):
+            for attempt in range(2):
                 try:
                     async with aiohttp.ClientSession() as session:
                         async with session.post(url, json=payload, timeout=timeout) as response:
@@ -113,16 +113,15 @@ class TranscriptManager:
                             error_text = await response.text()
                             self.logger.error(f"Transcript POST failed ({response.status}): {error_text}")
                 except asyncio.TimeoutError:
-                    self.logger.warning(f"Transcript POST timed out (attempt {attempt + 1}/3)")
+                    self.logger.warning(f"Transcript POST timed out (attempt {attempt + 1}/2)")
                 except Exception as e:
-                    self.logger.warning(f"Transcript POST error (attempt {attempt + 1}/3): {e}")
+                    self.logger.warning(f"Transcript POST error (attempt {attempt + 1}/2): {e}")
 
-                if attempt < 2:
-                    wait = (attempt + 1) * 10  # 10s, 20s between retries
-                    self.logger.info(f"Retrying transcript in {wait}s...")
-                    await asyncio.sleep(wait)
+                if attempt < 1:
+                    self.logger.info("Retrying transcript in 3s...")
+                    await asyncio.sleep(3)
 
-            self.logger.error("All 3 transcript attempts failed")
+            self.logger.error("All transcript attempts failed")
             return False
 
         except Exception as e:
