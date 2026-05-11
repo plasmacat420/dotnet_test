@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timezone
 
 from livekit import agents
-from livekit.agents import AgentSession, Agent, JobContext, RoomOptions
+from livekit.agents import AgentSession, Agent, JobContext, RoomOutputOptions
 from livekit.plugins import silero, groq, sarvam
 
 import modular.config as config
@@ -39,7 +39,7 @@ async def entrypoint(ctx: JobContext):
     await session.start(
         room=ctx.room,
         agent=agent,
-        room_options=RoomOptions(transcription_enabled=True),
+        room_output_options=RoomOutputOptions(transcription_enabled=True),
     )
 
     await session.generate_reply(instructions="Greet the user warmly and introduce yourself.")

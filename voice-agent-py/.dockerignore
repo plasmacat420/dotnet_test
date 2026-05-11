@@ -58,6 +58,7 @@ README.md
 
 # Windows
 Thumbs.db
+*.exe
 
 # UV lock file (will be regenerated)
 uv.lock
