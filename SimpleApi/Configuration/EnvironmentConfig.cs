@@ -32,11 +32,9 @@ public static class EnvironmentConfig
         MapEnvToConfig(builder, "LIVEKIT_API_KEY", "LiveKit:ApiKey");
         MapEnvToConfig(builder, "LIVEKIT_API_SECRET", "LiveKit:ApiSecret");
 
-        MapEnvToConfig(builder, "EMAIL_SMTP_HOST", "Email:SmtpHost");
-        MapEnvToConfig(builder, "EMAIL_SMTP_PORT", "Email:SmtpPort");
-        MapEnvToConfig(builder, "EMAIL_SENDER_EMAIL", "Email:SenderEmail");
-        MapEnvToConfig(builder, "EMAIL_SENDER_PASSWORD", "Email:SenderPassword");
-        MapEnvToConfig(builder, "EMAIL_SENDER_NAME", "Email:SenderName");
+        MapEnvToConfig(builder, "RESEND_API_KEY", "Resend:ApiKey");
+        MapEnvToConfig(builder, "RESEND_SENDER_EMAIL", "Resend:SenderEmail");
+        MapEnvToConfig(builder, "RESEND_SENDER_NAME", "Resend:SenderName");
 
         MapEnvToConfig(builder, "GROQ_API_KEY", "Groq:ApiKey");
     }

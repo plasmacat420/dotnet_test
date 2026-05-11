@@ -78,7 +78,10 @@ builder.Services.Configure<LiveKitOptions>(
 builder.Services.AddScoped<LiveKitTokenService>();
 
 // Register Email Service
-builder.Services.AddScoped<EmailService>();
+builder.Services.AddHttpClient<EmailService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 
 // Register Rate Limiting Service (singleton for shared state)
 builder.Services.AddSingleton<RateLimitingService>();

@@ -1,6 +1,6 @@
-using MailKit.Net.Smtp;
-using MailKit.Security;
-using MimeKit;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 
 namespace SimpleApi.Services;
 
@@ -8,49 +8,46 @@ public class EmailService
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<EmailService> _logger;
+    private readonly HttpClient _httpClient;
 
-    public EmailService(IConfiguration configuration, ILogger<EmailService> logger)
+    public EmailService(IConfiguration configuration, ILogger<EmailService> logger, HttpClient httpClient)
     {
         _configuration = configuration;
         _logger = logger;
+        _httpClient = httpClient;
     }
 
     public async Task<bool> SendEmailAsync(string toEmail, string subject, string htmlBody)
     {
         try
         {
-            var smtpHost = _configuration["Email:SmtpHost"] ?? "smtp.gmail.com";
-            var smtpPort = int.Parse(_configuration["Email:SmtpPort"] ?? "587");
-            var senderEmail = _configuration["Email:SenderEmail"] ?? throw new InvalidOperationException("Sender email not configured");
-            var senderPassword = _configuration["Email:SenderPassword"] ?? throw new InvalidOperationException("Sender password not configured");
-            var senderName = _configuration["Email:SenderName"] ?? "Prepreater Voice Agent";
+            var apiKey = _configuration["Resend:ApiKey"]
+                ?? throw new InvalidOperationException("Resend API key not configured (RESEND_API_KEY)");
+            var senderEmail = _configuration["Resend:SenderEmail"] ?? "hello@prepreater.com";
+            var senderName = _configuration["Resend:SenderName"] ?? "Prepreater Voice Agent";
 
-            var message = new MimeMessage();
-            message.From.Add(new MailboxAddress(senderName, senderEmail));
-            message.To.Add(new MailboxAddress("", toEmail));
-            message.Subject = subject;
-
-            var bodyBuilder = new BodyBuilder
+            var payload = new
             {
-                HtmlBody = htmlBody
+                from = $"{senderName} <{senderEmail}>",
+                to = new[] { toEmail },
+                subject,
+                html = htmlBody
             };
-            message.Body = bodyBuilder.ToMessageBody();
 
-            using var client = new SmtpClient();
+            var request = new HttpRequestMessage(HttpMethod.Post, "https://api.resend.com/emails");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+            request.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-            // Connect to SMTP server
-            await client.ConnectAsync(smtpHost, smtpPort, SecureSocketOptions.StartTls);
+            var response = await _httpClient.SendAsync(request);
+            var responseContent = await response.Content.ReadAsStringAsync();
 
-            // Authenticate
-            await client.AuthenticateAsync(senderEmail, senderPassword);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Resend API failed: {StatusCode} - {Response}", response.StatusCode, responseContent);
+                return false;
+            }
 
-            // Send email
-            await client.SendAsync(message);
-
-            // Disconnect
-            await client.DisconnectAsync(true);
-
-            _logger.LogInformation("Email sent successfully to {ToEmail}", toEmail);
+            _logger.LogInformation("Email sent via Resend to {ToEmail}", toEmail);
             return true;
         }
         catch (Exception ex)
