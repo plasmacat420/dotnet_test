@@ -67,7 +67,7 @@ async def entrypoint(ctx: JobContext):
             room_name=ctx.room.name,
             user_transcripts=user_transcripts,
             agent_messages=agent_messages,
-            email="faiz.corsair@gmail.com",
+            email="prepreater1@gmail.com",
         )
 
     ctx.add_shutdown_callback(_on_shutdown)

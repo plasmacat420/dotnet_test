@@ -143,7 +143,8 @@ Rules:
             _logger.LogInformation("Successfully generated AI summary with Groq");
 
             // Parse the summary JSON and format as HTML
-            var summary = JsonSerializer.Deserialize<ConversationSummary>(summaryJson);
+            var deserializeOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var summary = JsonSerializer.Deserialize<ConversationSummary>(summaryJson, deserializeOptions);
             return FormatSummaryAsHtml(summary, messages, roomName);
         }
         catch (Exception ex)
