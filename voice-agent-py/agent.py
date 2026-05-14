@@ -9,6 +9,7 @@ from livekit.agents import AgentSession, Agent, JobContext, RoomOutputOptions
 from livekit.plugins import silero, groq, sarvam
 
 import modular.config as config
+from modular.multilingual_tts import MultilingualSarvamTTS
 from modular.transcript_manager import TranscriptManager
 from modular.utils import setup_logger
 
@@ -80,11 +81,11 @@ async def entrypoint(ctx: JobContext):
 
 def prewarm_fnc(proc: agents.JobProcess):
     logger.info("Prewarming agent components...")
-    proc.userdata["stt"] = sarvam.STT(language="en-IN")
+    proc.userdata["stt"] = sarvam.STT(language="", model="saarika:v2.5")
     proc.userdata["llm"] = groq.LLM(model="llama-3.3-70b-versatile")
-    proc.userdata["tts"] = sarvam.TTS(
-        target_language_code="hi-IN",
+    proc.userdata["tts"] = MultilingualSarvamTTS(
         speaker="anushka",
+        default_language="hi-IN",
         model="bulbul:v2",
     )
     proc.userdata["vad"] = silero.VAD.load(
