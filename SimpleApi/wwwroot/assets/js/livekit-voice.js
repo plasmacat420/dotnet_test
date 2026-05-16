@@ -100,13 +100,6 @@ class LiveKitVoiceClient {
         throw new Error('LiveKit client SDK not loaded. Please refresh the page.');
       }
 
-      // Create AudioContext synchronously before any await — the browser's user
-      // gesture activation window expires after the first async hop, after which
-      // AudioContext starts suspended and LiveKit's audio pipeline is silent.
-      // Creating it here (still in the gesture frame) gives us a running context.
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      const audioCtx = AudioContextClass ? new AudioContextClass() : undefined;
-
       // Stage 1: Getting token
       if (this.onStageChange) this.onStageChange('Getting access token...');
 
@@ -139,8 +132,7 @@ class LiveKitVoiceClient {
       this.roomName = data.roomName;
       const livekitUrl = data.url;
 
-      // Stage 2: Creating room — pass pre-created AudioContext so LiveKit's
-      // silence detector and audio pipeline use the already-running context.
+      // Stage 2: Creating room
       if (this.onStageChange) this.onStageChange('Creating room...');
       this.room = new this.LiveKit.Room({
         adaptiveStream: true,
@@ -149,8 +141,7 @@ class LiveKitVoiceClient {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true
-        },
-        ...(audioCtx && { audioContext: audioCtx })
+        }
       });
 
       // Set up event handlers BEFORE connecting

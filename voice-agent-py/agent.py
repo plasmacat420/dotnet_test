@@ -5,12 +5,10 @@ from datetime import datetime, timezone
 import aiohttp
 
 from livekit import agents
-from livekit.agents import AgentSession, Agent, JobContext
-from livekit.agents.voice.room_io import RoomOptions
+from livekit.agents import AgentSession, Agent, JobContext, RoomOutputOptions
 from livekit.plugins import silero, groq, sarvam
 
 import modular.config as config
-from modular.multilingual_tts import MultilingualSarvamTTS
 from modular.transcript_manager import TranscriptManager
 from modular.utils import setup_logger
 
@@ -53,7 +51,7 @@ async def entrypoint(ctx: JobContext):
     await session.start(
         room=ctx.room,
         agent=agent,
-        room_options=RoomOptions(text_output=True),
+        room_output_options=RoomOutputOptions(transcription_enabled=True),
     )
 
     await session.generate_reply(instructions="Greet the user warmly and introduce yourself.")
@@ -65,29 +63,12 @@ async def entrypoint(ctx: JobContext):
                 agent_messages = session.history.to_dict().get("items", [])
         except Exception as e:
             logger.warning(f"Could not extract agent history: {e}")
-
-        async def _send():
-            if config.TRANSCRIPT_WEBHOOK_URL:
-                await transcript_manager.send_to_webhook(
-                    room_name=ctx.room.name,
-                    user_transcripts=user_transcripts,
-                    agent_messages=agent_messages,
-                    webhook_url=config.TRANSCRIPT_WEBHOOK_URL,
-                    groq_api_key=os.getenv("GROQ_API_KEY", ""),
-                    transcript_secret=os.getenv("TRANSCRIPT_SECRET", ""),
-                )
-            else:
-                await transcript_manager.send_transcript_email(
-                    room_name=ctx.room.name,
-                    user_transcripts=user_transcripts,
-                    agent_messages=agent_messages,
-                    email="prepreater1@gmail.com",
-                )
-
-        try:
-            await asyncio.wait_for(_send(), timeout=28)
-        except asyncio.TimeoutError:
-            logger.warning("Shutdown: transcript send timed out after 28s")
+        await transcript_manager.send_transcript_email(
+            room_name=ctx.room.name,
+            user_transcripts=user_transcripts,
+            agent_messages=agent_messages,
+            email="prepreater1@gmail.com",
+        )
 
     ctx.add_shutdown_callback(_on_shutdown)
 
@@ -99,11 +80,11 @@ async def entrypoint(ctx: JobContext):
 
 def prewarm_fnc(proc: agents.JobProcess):
     logger.info("Prewarming agent components...")
-    proc.userdata["stt"] = sarvam.STT(language="", model="saarika:v2.5")
+    proc.userdata["stt"] = sarvam.STT(language="en-IN")
     proc.userdata["llm"] = groq.LLM(model="llama-3.3-70b-versatile")
-    proc.userdata["tts"] = MultilingualSarvamTTS(
+    proc.userdata["tts"] = sarvam.TTS(
+        target_language_code="hi-IN",
         speaker="anushka",
-        default_language="hi-IN",
         model="bulbul:v2",
     )
     proc.userdata["vad"] = silero.VAD.load(
@@ -134,6 +115,5 @@ if __name__ == "__main__":
             request_fnc=request_fnc,
             agent_name=config.AGENT_NAME,
             port=config.AGENT_PORT,
-            num_idle_processes=1,
         )
     )
