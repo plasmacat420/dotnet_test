@@ -153,6 +153,9 @@ class LiveKitVoiceClient {
 
       // Stage 4: Enabling microphone
       if (this.onStageChange) this.onStageChange('Enabling microphone...');
+      // Resume LiveKit's internal AudioContext (required in browsers — AudioWorklet
+      // starts suspended and mic audio is silent until explicitly resumed)
+      await this.room.startAudio();
       await this.room.localParticipant.setMicrophoneEnabled(true);
 
       // Stage 5: Waking up agent (critical step!)

@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 import aiohttp
 
 from livekit import agents
-from livekit.agents import AgentSession, Agent, JobContext, RoomOutputOptions
+from livekit.agents import AgentSession, Agent, JobContext
+from livekit.agents.voice.room_io import RoomOptions
 from livekit.plugins import silero, groq, sarvam
 
 import modular.config as config
@@ -52,7 +53,7 @@ async def entrypoint(ctx: JobContext):
     await session.start(
         room=ctx.room,
         agent=agent,
-        room_output_options=RoomOutputOptions(transcription_enabled=True),
+        room_options=RoomOptions(text_output=True),
     )
 
     await session.generate_reply(instructions="Greet the user warmly and introduce yourself.")
@@ -64,12 +65,29 @@ async def entrypoint(ctx: JobContext):
                 agent_messages = session.history.to_dict().get("items", [])
         except Exception as e:
             logger.warning(f"Could not extract agent history: {e}")
-        await transcript_manager.send_transcript_email(
-            room_name=ctx.room.name,
-            user_transcripts=user_transcripts,
-            agent_messages=agent_messages,
-            email="prepreater1@gmail.com",
-        )
+
+        async def _send():
+            if config.TRANSCRIPT_WEBHOOK_URL:
+                await transcript_manager.send_to_webhook(
+                    room_name=ctx.room.name,
+                    user_transcripts=user_transcripts,
+                    agent_messages=agent_messages,
+                    webhook_url=config.TRANSCRIPT_WEBHOOK_URL,
+                    groq_api_key=os.getenv("GROQ_API_KEY", ""),
+                    transcript_secret=os.getenv("TRANSCRIPT_SECRET", ""),
+                )
+            else:
+                await transcript_manager.send_transcript_email(
+                    room_name=ctx.room.name,
+                    user_transcripts=user_transcripts,
+                    agent_messages=agent_messages,
+                    email="prepreater1@gmail.com",
+                )
+
+        try:
+            await asyncio.wait_for(_send(), timeout=28)
+        except asyncio.TimeoutError:
+            logger.warning("Shutdown: transcript send timed out after 28s")
 
     ctx.add_shutdown_callback(_on_shutdown)
 
@@ -116,5 +134,6 @@ if __name__ == "__main__":
             request_fnc=request_fnc,
             agent_name=config.AGENT_NAME,
             port=config.AGENT_PORT,
+            num_idle_processes=1,
         )
     )
